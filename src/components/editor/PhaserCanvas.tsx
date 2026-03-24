@@ -26,12 +26,22 @@ export function PhaserCanvas({
 
   // Initialize Phaser game
   useEffect(() => {
-    if (typeof window === 'undefined' || !containerRef.current || gameRef.current) {
+    if (typeof window === 'undefined' || !containerRef.current) {
+      return
+    }
+
+    // Prevent multiple initializations
+    if (gameRef.current) {
       return
     }
 
     // Dynamic import Phaser only on client
     import('@/phaser/PhaserGame').then(({ PhaserGameWrapper }) => {
+      // Double-check still needed after async import
+      if (gameRef.current) {
+        return
+      }
+
       const game = new PhaserGameWrapper()
       game.initialize('phaser-container')
       gameRef.current = game
@@ -68,6 +78,8 @@ export function PhaserCanvas({
       if (gameRef.current) {
         gameRef.current.destroy()
         gameRef.current = null
+        sceneRef.current = null
+        setIsReady(false)
       }
     }
   }, [])

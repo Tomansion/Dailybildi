@@ -22,13 +22,18 @@ export function BlockCard({
   isSelected,
   onClick,
 }: BlockCardProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent click from bubbling to canvas
+    onClick()
+  }
+
   return (
     <Card
       className={cn(
         "cursor-pointer transition-all hover:border-primary relative",
         isSelected && "border-primary border-2 shadow-lg"
       )}
-      onClick={onClick}
+      onClick={handleClick}
     >
       <CardContent className="p-3">
         <div className="relative w-16 h-16 mx-auto">

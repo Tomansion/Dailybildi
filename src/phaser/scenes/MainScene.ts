@@ -27,6 +27,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
+    
     // Add world background
     this.add.image(0, 0, 'world_bg').setOrigin(0.5, 0.5).setDepth(-1000)
 
@@ -40,7 +41,31 @@ export class MainScene extends Phaser.Scene {
     this.cameraManager.goHome()
   }
 
+  shutdown() {
+    // Remove all event listeners
+    this.input.removeAllListeners()
+    
+    // Destroy phantom block
+    if (this.phantomBlock) {
+      this.phantomBlock.destroy()
+      this.phantomBlock = null
+    }
+    
+    // Clear selected block
+    this.selectedBlock = null
+    this.selectedBlockData = null
+    
+    // Destroy all blocks
+    this.blocks.forEach(block => block.destroy())
+    this.blocks.clear()
+  }
+
   private setupInputHandlers() {
+    // Remove any existing listeners first to prevent duplicates
+    this.input.removeAllListeners('pointerdown')
+    this.input.removeAllListeners('drag')
+    this.input.removeAllListeners('dragend')
+    
     // Handle canvas click for block placement
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.leftButtonDown() && !pointer.middleButtonDown()) {
@@ -117,7 +142,6 @@ export class MainScene extends Phaser.Scene {
   loadBlockImages(blockImages: Array<{ id: string; layer: number; rarity: number; imagePath: string }>) {
     for (const block of blockImages) {
       const key = `block_${block.id}_${block.layer}_${block.rarity}`
-      console.log("Loading block image:",key, block.imagePath)
       
       if (!this.textures.exists(key)) {
         this.load.image(key, block.imagePath)
@@ -136,6 +160,24 @@ export class MainScene extends Phaser.Scene {
     }
 
     const key = `block_${blockData.id}_${blockData.layer}_${blockData.rarity}`
+    
+    // Check if texture exists, if not load it first
+    if (!this.textures.exists(key)) {
+      this.load.image(key, blockData.imagePath)
+      this.load.once('complete', () => {
+        this.createPhantomBlock(key)
+      })
+      this.load.start()
+    } else {
+      this.createPhantomBlock(key)
+    }
+  }
+
+  private createPhantomBlock(key: string) {
+    if (this.phantomBlock) {
+      this.phantomBlock.destroy()
+    }
+    
     this.phantomBlock = this.add.sprite(0, 0, key)
     this.phantomBlock.setAlpha(0.5)
     this.phantomBlock.setDepth(10000)

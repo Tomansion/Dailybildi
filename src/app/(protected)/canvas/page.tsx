@@ -150,7 +150,10 @@ export default function CanvasPage() {
   return (
     <div className="h-screen w-screen overflow-hidden flex">
       {/* Inventory Panel */}
-      <div className="flex-shrink-0">
+      <div 
+        className="flex-shrink-0 relative z-10"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <Inventory
           blocks={inventory}
           onBlockSelect={handleBlockSelect}

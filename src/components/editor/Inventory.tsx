@@ -12,7 +12,12 @@ interface InventoryProps {
 
 export function Inventory({ blocks, selectedBlockKey, onBlockSelect }: InventoryProps) {
   return (
-    <div className="w-64 h-full bg-card border-r border-border flex flex-col">
+    <div 
+      className="w-64 h-full bg-card border-r border-border flex flex-col"
+      style={{ pointerEvents: 'auto' }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="p-4 border-b border-border">
         <h2 className="text-lg font-semibold">Inventory</h2>
         <p className="text-sm text-muted-foreground">
