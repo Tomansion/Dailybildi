@@ -20,8 +20,8 @@ async function seedBlockCatalog() {
       process.exit(0)
     }
 
-    // Read tile files from univers/ink_castle/tiles
-    const tilesDir = path.join(process.cwd(), 'univers', UNIVERSE_ID, 'tiles')
+    // Read tile files from public/univers/ink_castle/tiles
+    const tilesDir = path.join(process.cwd(), 'public', 'univers', UNIVERSE_ID, 'tiles')
     
     if (!fs.existsSync(tilesDir)) {
       console.error(`❌ Tiles directory not found: ${tilesDir}`)

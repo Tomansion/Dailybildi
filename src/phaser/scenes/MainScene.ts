@@ -22,10 +22,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load all block images
-    // This will be populated dynamically from the catalog
-    this.load.setPath('/univers/ink_castle/tiles/')
-    
     // Load world background
     this.load.image('world_bg', WORLD_BACKGROUND_PATH)
   }
@@ -121,6 +117,8 @@ export class MainScene extends Phaser.Scene {
   loadBlockImages(blockImages: Array<{ id: string; layer: number; rarity: number; imagePath: string }>) {
     for (const block of blockImages) {
       const key = `block_${block.id}_${block.layer}_${block.rarity}`
+      console.log("Loading block image:",key, block.imagePath)
+      
       if (!this.textures.exists(key)) {
         this.load.image(key, block.imagePath)
       }
