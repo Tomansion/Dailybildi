@@ -1,81 +1,103 @@
-import ArangoDBClient from '../arango'
-import { COLLECTIONS } from '../collections'
+import prisma from '../prisma'
 import { BlockCatalog, DailyBlockSelection } from '@/types/block'
 
 export class BlockQueries {
   static async getAllBlocks(): Promise<BlockCatalog[]> {
-    const db = ArangoDBClient.getClient()
+    const blocks = await prisma.blockCatalog.findMany({
+      orderBy: [
+        { layer: 'asc' },
+        { rarity: 'asc' },
+      ],
+    })
     
-    const cursor = await db.query(`
-      FOR block IN ${COLLECTIONS.BLOCK_CATALOG}
-        SORT block.layer ASC, block.rarity ASC
-        RETURN block
-    `)
-    
-    return await cursor.all()
+    return blocks.map(block => ({
+      _key: block.id,
+      blockId: block.blockId,
+      layer: block.layer,
+      rarity: block.rarity,
+      universeId: block.universeId,
+      imagePath: block.imagePath,
+    }))
   }
 
   static async getBlocksByKeys(blockKeys: string[]): Promise<BlockCatalog[]> {
-    const db = ArangoDBClient.getClient()
+    const blocks = await prisma.blockCatalog.findMany({
+      where: {
+        id: { in: blockKeys },
+      },
+    })
     
-    const cursor = await db.query(`
-      FOR block IN ${COLLECTIONS.BLOCK_CATALOG}
-        FILTER block._key IN @blockKeys
-        RETURN block
-    `, { blockKeys })
-    
-    return await cursor.all()
+    return blocks.map(block => ({
+      _key: block.id,
+      blockId: block.blockId,
+      layer: block.layer,
+      rarity: block.rarity,
+      universeId: block.universeId,
+      imagePath: block.imagePath,
+    }))
   }
 
   static async getBlockByKey(blockKey: string): Promise<BlockCatalog | null> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.BLOCK_CATALOG)
+    const block = await prisma.blockCatalog.findUnique({
+      where: { id: blockKey },
+    })
     
-    try {
-      const block = await collection.document(blockKey)
-      return block as BlockCatalog
-    } catch {
-      return null
+    if (!block) return null
+    
+    return {
+      _key: block.id,
+      blockId: block.blockId,
+      layer: block.layer,
+      rarity: block.rarity,
+      universeId: block.universeId,
+      imagePath: block.imagePath,
     }
   }
 
   static async saveDailySelection(date: string, selectedBlocks: string[]): Promise<void> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.DAILY_BLOCK_SELECTIONS)
-    
-    const selection: DailyBlockSelection = {
-      _key: date,
-      date,
-      selectedBlocks,
-      createdAt: new Date().toISOString(),
-    }
-    
-    await collection.save(selection)
+    await prisma.dailyBlockSelection.create({
+      data: {
+        date,
+        selectedBlocks: {
+          connect: selectedBlocks.map(id => ({ id })),
+        },
+      },
+    })
   }
 
   static async getDailySelection(date: string): Promise<DailyBlockSelection | null> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.DAILY_BLOCK_SELECTIONS)
+    const selection = await prisma.dailyBlockSelection.findUnique({
+      where: { date },
+      include: {
+        selectedBlocks: true,
+      },
+    })
     
-    try {
-      const selection = await collection.document(date)
-      return selection as DailyBlockSelection
-    } catch {
-      return null
+    if (!selection) return null
+    
+    return {
+      _key: selection.id,
+      date: selection.date,
+      selectedBlocks: selection.selectedBlocks.map(b => b.id),
+      createdAt: selection.createdAt.toISOString(),
     }
   }
 
   static async getLatestDailySelection(): Promise<DailyBlockSelection | null> {
-    const db = ArangoDBClient.getClient()
+    const selection = await prisma.dailyBlockSelection.findFirst({
+      orderBy: { date: 'desc' },
+      include: {
+        selectedBlocks: true,
+      },
+    })
     
-    const cursor = await db.query(`
-      FOR selection IN ${COLLECTIONS.DAILY_BLOCK_SELECTIONS}
-        SORT selection.date DESC
-        LIMIT 1
-        RETURN selection
-    `)
+    if (!selection) return null
     
-    const results = await cursor.all()
-    return results[0] || null
+    return {
+      _key: selection.id,
+      date: selection.date,
+      selectedBlocks: selection.selectedBlocks.map(b => b.id),
+      createdAt: selection.createdAt.toISOString(),
+    }
   }
 }

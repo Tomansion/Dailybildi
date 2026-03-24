@@ -1,70 +1,73 @@
-import ArangoDBClient from '../arango'
-import { COLLECTIONS } from '../collections'
+import prisma from '../prisma'
 import { User } from '@/types/user'
 
 export class UserQueries {
   static async createUser(userData: Omit<User, '_key'>): Promise<User> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.USERS)
+    const user = await prisma.user.create({
+      data: {
+        username: userData.username,
+        passwordHash: userData.passwordHash,
+        createdAt: new Date(userData.createdAt),
+        firstLoginAt: userData.firstLoginAt ? new Date(userData.firstLoginAt) : undefined,
+        receivedInitialBlocks: userData.receivedInitialBlocks,
+      },
+    })
     
-    const result = await collection.save(userData)
     return {
-      _key: result._key,
-      ...userData,
+      _key: user.id,
+      username: user.username,
+      passwordHash: user.passwordHash,
+      createdAt: user.createdAt.toISOString(),
+      firstLoginAt: user.firstLoginAt?.toISOString(),
+      receivedInitialBlocks: user.receivedInitialBlocks,
     }
   }
 
   static async findByUsername(username: string): Promise<User | null> {
-    const db = ArangoDBClient.getClient()
+    const user = await prisma.user.findUnique({
+      where: { username },
+    })
     
-    const cursor = await db.query(`
-      FOR user IN ${COLLECTIONS.USERS}
-        FILTER user.username == @username
-        LIMIT 1
-        RETURN user
-    `, { username })
+    if (!user) return null
     
-    const results = await cursor.all()
-    return results[0] || null
-  }
-
-  static async findByEmail(email: string): Promise<User | null> {
-    const db = ArangoDBClient.getClient()
-    
-    const cursor = await db.query(`
-      FOR user IN ${COLLECTIONS.USERS}
-        FILTER user.email == @email
-        LIMIT 1
-        RETURN user
-    `, { email })
-    
-    const results = await cursor.all()
-    return results[0] || null
+    return {
+      _key: user.id,
+      username: user.username,
+      passwordHash: user.passwordHash,
+      createdAt: user.createdAt.toISOString(),
+      firstLoginAt: user.firstLoginAt?.toISOString(),
+      receivedInitialBlocks: user.receivedInitialBlocks,
+    }
   }
 
   static async findById(userId: string): Promise<User | null> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.USERS)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
     
-    try {
-      const user = await collection.document(userId)
-      return user as User
-    } catch {
-      return null
+    if (!user) return null
+    
+    return {
+      _key: user.id,
+      username: user.username,
+      passwordHash: user.passwordHash,
+      createdAt: user.createdAt.toISOString(),
+      firstLoginAt: user.firstLoginAt?.toISOString(),
+      receivedInitialBlocks: user.receivedInitialBlocks,
     }
   }
 
   static async updateFirstLogin(userId: string, firstLoginAt: string): Promise<void> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.USERS)
-    
-    await collection.update(userId, { firstLoginAt })
+    await prisma.user.update({
+      where: { id: userId },
+      data: { firstLoginAt: new Date(firstLoginAt) },
+    })
   }
 
   static async markInitialBlocksReceived(userId: string): Promise<void> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.USERS)
-    
-    await collection.update(userId, { receivedInitialBlocks: true })
+    await prisma.user.update({
+      where: { id: userId },
+      data: { receivedInitialBlocks: true },
+    })
   }
 }

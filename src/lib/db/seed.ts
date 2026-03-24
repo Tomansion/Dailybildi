@@ -1,31 +1,22 @@
 import { config } from 'dotenv'
 import fs from 'fs'
 import path from 'path'
-import ArangoDBClient from './arango'
-import { COLLECTIONS } from './collections'
+import prisma from './prisma'
 import { UNIVERSE_ID } from '../constants'
-import { BlockCatalog } from '@/types/block'
 
 // Load .env.local file
 config({ path: path.resolve(process.cwd(), '.env.local') })
 
 async function seedBlockCatalog() {
   console.log('🌱 Seeding Block Catalog...')
-  
-  const db = ArangoDBClient.getClient()
-  const collection = db.collection(COLLECTIONS.BLOCK_CATALOG)
 
   try {
     // Check if already seeded
-    const cursor = await db.query(`
-      FOR block IN ${COLLECTIONS.BLOCK_CATALOG}
-        LIMIT 1
-        RETURN block
-    `)
-    const existing = await cursor.all()
+    const existing = await prisma.blockCatalog.findFirst()
     
-    if (existing.length > 0) {
+    if (existing) {
       console.log('⚠️  Block catalog already seeded. Skipping...')
+      await prisma.$disconnect()
       process.exit(0)
     }
 
@@ -34,6 +25,7 @@ async function seedBlockCatalog() {
     
     if (!fs.existsSync(tilesDir)) {
       console.error(`❌ Tiles directory not found: ${tilesDir}`)
+      await prisma.$disconnect()
       process.exit(1)
     }
 
@@ -42,7 +34,7 @@ async function seedBlockCatalog() {
 
     console.log(`📦 Found ${tileFiles.length} tile files`)
 
-    const blocks: BlockCatalog[] = []
+    const blocks = []
 
     for (const file of tileFiles) {
       // Parse filename: tile_{id}_{layer}_{rarity}.png
@@ -54,10 +46,8 @@ async function seedBlockCatalog() {
       }
 
       const [, id, layer, rarity] = match
-      const blockKey = `block_${id}_${layer}_${rarity}`
 
       blocks.push({
-        _key: blockKey,
         blockId: id,
         layer: parseInt(layer, 10),
         rarity: parseInt(rarity, 10),
@@ -68,7 +58,10 @@ async function seedBlockCatalog() {
 
     // Insert all blocks
     if (blocks.length > 0) {
-      await collection.saveAll(blocks)
+      await prisma.blockCatalog.createMany({
+        data: blocks,
+      })
+      
       console.log(`✅ Seeded ${blocks.length} blocks into catalog`)
       
       // Display summary
@@ -88,9 +81,11 @@ async function seedBlockCatalog() {
       console.log('⚠️  No valid blocks found to seed')
     }
 
+    await prisma.$disconnect()
     process.exit(0)
   } catch (error) {
     console.error('❌ Seeding failed:', error)
+    await prisma.$disconnect()
     process.exit(1)
   }
 }

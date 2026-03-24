@@ -60,12 +60,6 @@ async function initializeDatabase() {
       unique: true,
       name: 'idx_username',
     })
-    await usersCollection.ensureIndex({
-      type: 'persistent',
-      fields: ['email'],
-      unique: true,
-      name: 'idx_email',
-    })
 
     // DailyBlockSelections indexes
     const dailyBlocksCollection = db.collection(COLLECTIONS.DAILY_BLOCK_SELECTIONS)

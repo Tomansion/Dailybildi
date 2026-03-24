@@ -19,19 +19,12 @@ export class AuthService {
       throw new Error('Username already exists')
     }
 
-    // Check if email exists
-    const existingEmail = await UserQueries.findByEmail(data.email)
-    if (existingEmail) {
-      throw new Error('Email already exists')
-    }
-
     // Hash password
     const passwordHash = await this.hashPassword(data.password)
 
     // Create user
     const user = await UserQueries.createUser({
       username: data.username,
-      email: data.email,
       passwordHash,
       createdAt: new Date().toISOString(),
       receivedInitialBlocks: false,

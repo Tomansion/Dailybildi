@@ -1,5 +1,23 @@
 import { Database } from 'arangojs'
 
+// Store original Request constructor
+const OriginalRequest = global.Request
+
+// Patch Request constructor to remove keepalive option (incompatible with Next.js undici)
+class PatchedRequest extends OriginalRequest {
+  constructor(input: RequestInfo | URL, init?: RequestInit) {
+    if (init && 'keepalive' in init) {
+      const { keepalive, ...restInit } = init
+      super(input, restInit)
+    } else {
+      super(input, init)
+    }
+  }
+}
+
+// Override global Request to fix Next.js + ArangoDB compatibility
+global.Request = PatchedRequest as any
+
 class ArangoDBClient {
   private static instance: Database | null = null
 
@@ -14,6 +32,7 @@ class ArangoDBClient {
         url,
         databaseName,
         auth: { username, password },
+        precaptureStackTraces: false,
       })
     }
 

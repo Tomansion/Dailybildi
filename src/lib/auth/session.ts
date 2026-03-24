@@ -16,7 +16,6 @@ export async function getUserSession(): Promise<UserSession | null> {
   return {
     id: session.user.id,
     username: session.user.username,
-    email: session.user.email || '',
   }
 }
 

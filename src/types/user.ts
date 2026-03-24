@@ -1,7 +1,6 @@
 export interface User {
   _key: string
   username: string
-  email: string
   passwordHash: string
   createdAt: string
   firstLoginAt?: string
@@ -11,7 +10,6 @@ export interface User {
 export interface UserSession {
   id: string
   username: string
-  email: string
 }
 
 export interface LoginCredentials {
@@ -21,6 +19,5 @@ export interface LoginCredentials {
 
 export interface RegisterData {
   username: string
-  email: string
   password: string
 }

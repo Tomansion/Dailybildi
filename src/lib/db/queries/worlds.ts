@@ -1,104 +1,127 @@
-import ArangoDBClient from '../arango'
-import { COLLECTIONS } from '../collections'
+import prisma from '../prisma'
 import { World, PlacedBlock, PlacedBlockWithData, WorldWithBlocks } from '@/types/world'
 
 export class WorldQueries {
   static async createWorld(userId: string, universeId: string): Promise<World> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.WORLDS)
+    const world = await prisma.world.create({
+      data: {
+        userId,
+        universeId,
+      },
+    })
     
-    const now = new Date().toISOString()
-    const world: World = {
-      _key: `world_${userId}`,
-      userId,
-      universeId,
-      createdAt: now,
-      updatedAt: now,
-      likeCount: 0,
+    return {
+      _key: world.id,
+      userId: world.userId,
+      universeId: world.universeId,
+      createdAt: world.createdAt.toISOString(),
+      updatedAt: world.updatedAt.toISOString(),
+      likeCount: world.likeCount,
     }
-    
-    await collection.save(world)
-    return world
   }
 
   static async getWorldByUserId(userId: string): Promise<World | null> {
-    const db = ArangoDBClient.getClient()
+    const world = await prisma.world.findFirst({
+      where: { userId },
+    })
     
-    const cursor = await db.query(`
-      FOR world IN ${COLLECTIONS.WORLDS}
-        FILTER world.userId == @userId
-        LIMIT 1
-        RETURN world
-    `, { userId })
+    if (!world) return null
     
-    const results = await cursor.all()
-    return results[0] || null
+    return {
+      _key: world.id,
+      userId: world.userId,
+      universeId: world.universeId,
+      createdAt: world.createdAt.toISOString(),
+      updatedAt: world.updatedAt.toISOString(),
+      likeCount: world.likeCount,
+    }
   }
 
   static async getWorldById(worldId: string): Promise<World | null> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.WORLDS)
+    const world = await prisma.world.findUnique({
+      where: { id: worldId },
+    })
     
-    try {
-      const world = await collection.document(worldId)
-      return world as World
-    } catch {
-      return null
+    if (!world) return null
+    
+    return {
+      _key: world.id,
+      userId: world.userId,
+      universeId: world.universeId,
+      createdAt: world.createdAt.toISOString(),
+      updatedAt: world.updatedAt.toISOString(),
+      likeCount: world.likeCount,
     }
   }
 
   static async updateWorldTimestamp(worldId: string): Promise<void> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.WORLDS)
-    
-    await collection.update(worldId, {
-      updatedAt: new Date().toISOString(),
+    await prisma.world.update({
+      where: { id: worldId },
+      data: { updatedAt: new Date() },
     })
   }
 
   static async getPlacedBlocks(worldId: string): Promise<PlacedBlockWithData[]> {
-    const db = ArangoDBClient.getClient()
+    const placedBlocks = await prisma.placedBlock.findMany({
+      where: { worldId },
+      include: {
+        blockCatalog: true,
+      },
+      orderBy: [
+        { zOrder: 'asc' },
+        { blockCatalog: { layer: 'asc' } },
+      ],
+    })
     
-    const cursor = await db.query(`
-      FOR placed IN ${COLLECTIONS.PLACED_BLOCKS}
-        FILTER placed.worldId == @worldId
-        LET block = DOCUMENT(${COLLECTIONS.BLOCK_CATALOG}, placed.blockCatalogKey)
-        SORT placed.zOrder ASC, block.layer ASC
-        RETURN {
-          _key: placed._key,
-          worldId: placed.worldId,
-          blockCatalogKey: placed.blockCatalogKey,
-          gridX: placed.gridX,
-          gridY: placed.gridY,
-          rotation: placed.rotation,
-          flipX: placed.flipX,
-          flipY: placed.flipY,
-          zOrder: placed.zOrder,
-          placedAt: placed.placedAt,
-          blockData: {
-            id: block.blockId,
-            layer: block.layer,
-            rarity: block.rarity,
-            imagePath: block.imagePath
-          }
-        }
-    `, { worldId })
-    
-    return await cursor.all()
+    return placedBlocks.map(placed => ({
+      _key: placed.id,
+      worldId: placed.worldId,
+      blockCatalogKey: placed.blockCatalogId,
+      gridX: placed.gridX,
+      gridY: placed.gridY,
+      rotation: placed.rotation,
+      flipX: placed.flipX,
+      flipY: placed.flipY,
+      zOrder: placed.zOrder,
+      placedAt: placed.placedAt.toISOString(),
+      blockData: {
+        id: placed.blockCatalog.blockId,
+        layer: placed.blockCatalog.layer,
+        rarity: placed.blockCatalog.rarity,
+        imagePath: placed.blockCatalog.imagePath,
+      },
+    }))
   }
 
   static async savePlacedBlock(placedBlock: Omit<PlacedBlock, '_key'>): Promise<PlacedBlock> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.PLACED_BLOCKS)
-    
-    const result = await collection.save(placedBlock)
+    const created = await prisma.placedBlock.create({
+      data: {
+        worldId: placedBlock.worldId,
+        blockCatalogId: placedBlock.blockCatalogKey,
+        gridX: placedBlock.gridX,
+        gridY: placedBlock.gridY,
+        rotation: placedBlock.rotation,
+        flipX: placedBlock.flipX,
+        flipY: placedBlock.flipY,
+        zOrder: placedBlock.zOrder,
+        placedAt: new Date(placedBlock.placedAt),
+      },
+    })
     
     // Update world timestamp
     await this.updateWorldTimestamp(placedBlock.worldId)
     
     return {
-      _key: result._key,
-      ...placedBlock,
+      _key: created.id,
+      worldId: created.worldId,
+      blockCatalogKey: created.blockCatalogId,
+      gridX: created.gridX,
+      gridY: created.gridY,
+      rotation: created.rotation,
+      flipX: created.flipX,
+      flipY: created.flipY,
+      zOrder: created.zOrder,
+      placedAt: created.placedAt.toISOString(),
     }
   }
 
@@ -106,27 +129,36 @@ export class WorldQueries {
     blockKey: string,
     updates: Partial<Omit<PlacedBlock, '_key' | 'worldId' | 'blockCatalogKey' | 'placedAt'>>
   ): Promise<void> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.PLACED_BLOCKS)
+    const block = await prisma.placedBlock.findUnique({
+      where: { id: blockKey },
+    })
     
-    const block = await collection.document(blockKey)
-    await collection.update(blockKey, updates)
+    if (!block) return
+    
+    await prisma.placedBlock.update({
+      where: { id: blockKey },
+      data: updates,
+    })
     
     // Update world timestamp
     await this.updateWorldTimestamp(block.worldId)
   }
 
   static async deletePlacedBlock(blockKey: string): Promise<string> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.PLACED_BLOCKS)
+    const block = await prisma.placedBlock.findUnique({
+      where: { id: blockKey },
+    })
     
-    const block = await collection.document(blockKey) as PlacedBlock
-    await collection.remove(blockKey)
+    if (!block) throw new Error('Block not found')
+    
+    await prisma.placedBlock.delete({
+      where: { id: blockKey },
+    })
     
     // Update world timestamp
     await this.updateWorldTimestamp(block.worldId)
     
-    return block.blockCatalogKey
+    return block.blockCatalogId
   }
 
   static async getWorldsForCommunity(
@@ -134,71 +166,76 @@ export class WorldQueries {
     limit: number = 20,
     offset: number = 0
   ): Promise<WorldWithBlocks[]> {
-    const db = ArangoDBClient.getClient()
+    const orderBy = sortBy === 'likes' 
+      ? { likeCount: 'desc' as const }
+      : { updatedAt: 'desc' as const }
     
-    const sortField = sortBy === 'likes' ? 'world.likeCount DESC' : 'world.updatedAt DESC'
+    const worlds = await prisma.world.findMany({
+      orderBy,
+      skip: offset,
+      take: limit,
+      include: {
+        user: {
+          select: {
+            username: true,
+          },
+        },
+        placedBlocks: {
+          include: {
+            blockCatalog: true,
+          },
+          orderBy: [
+            { zOrder: 'asc' },
+            { blockCatalog: { layer: 'asc' } },
+          ],
+        },
+      },
+    })
     
-    const cursor = await db.query(`
-      FOR world IN ${COLLECTIONS.WORLDS}
-        SORT ${sortField}
-        LIMIT @offset, @limit
-        LET user = DOCUMENT(${COLLECTIONS.USERS}, world.userId)
-        LET placedBlocks = (
-          FOR placed IN ${COLLECTIONS.PLACED_BLOCKS}
-            FILTER placed.worldId == world._key
-            LET block = DOCUMENT(${COLLECTIONS.BLOCK_CATALOG}, placed.blockCatalogKey)
-            SORT placed.zOrder ASC, block.layer ASC
-            RETURN {
-              _key: placed._key,
-              worldId: placed.worldId,
-              blockCatalogKey: placed.blockCatalogKey,
-              gridX: placed.gridX,
-              gridY: placed.gridY,
-              rotation: placed.rotation,
-              flipX: placed.flipX,
-              flipY: placed.flipY,
-              zOrder: placed.zOrder,
-              placedAt: placed.placedAt,
-              blockData: {
-                id: block.blockId,
-                layer: block.layer,
-                rarity: block.rarity,
-                imagePath: block.imagePath
-              }
-            }
-        )
-        RETURN {
-          _key: world._key,
-          userId: world.userId,
-          universeId: world.universeId,
-          createdAt: world.createdAt,
-          updatedAt: world.updatedAt,
-          likeCount: world.likeCount,
-          username: user.username,
-          placedBlocks: placedBlocks
-        }
-    `, { offset, limit })
-    
-    return await cursor.all()
+    return worlds.map(world => ({
+      _key: world.id,
+      userId: world.userId,
+      universeId: world.universeId,
+      createdAt: world.createdAt.toISOString(),
+      updatedAt: world.updatedAt.toISOString(),
+      likeCount: world.likeCount,
+      username: world.user.username,
+      placedBlocks: world.placedBlocks.map(placed => ({
+        _key: placed.id,
+        worldId: placed.worldId,
+        blockCatalogKey: placed.blockCatalogId,
+        gridX: placed.gridX,
+        gridY: placed.gridY,
+        rotation: placed.rotation,
+        flipX: placed.flipX,
+        flipY: placed.flipY,
+        zOrder: placed.zOrder,
+        placedAt: placed.placedAt.toISOString(),
+        blockData: {
+          id: placed.blockCatalog.blockId,
+          layer: placed.blockCatalog.layer,
+          rarity: placed.blockCatalog.rarity,
+          imagePath: placed.blockCatalog.imagePath,
+        },
+      })),
+    }))
   }
 
   static async incrementLikeCount(worldId: string): Promise<void> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.WORLDS)
-    
-    const world = await collection.document(worldId) as World
-    await collection.update(worldId, {
-      likeCount: world.likeCount + 1,
+    await prisma.world.update({
+      where: { id: worldId },
+      data: {
+        likeCount: { increment: 1 },
+      },
     })
   }
 
   static async decrementLikeCount(worldId: string): Promise<void> {
-    const db = ArangoDBClient.getClient()
-    const collection = db.collection(COLLECTIONS.WORLDS)
-    
-    const world = await collection.document(worldId) as World
-    await collection.update(worldId, {
-      likeCount: Math.max(0, world.likeCount - 1),
+    await prisma.world.update({
+      where: { id: worldId },
+      data: {
+        likeCount: { decrement: 1 },
+      },
     })
   }
 }
