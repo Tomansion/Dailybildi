@@ -4,6 +4,10 @@ const nextConfig = {
   images: {
     remotePatterns: [],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['node-cron', 'arangojs', 'bcryptjs'],
+    instrumentationHook: true,
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

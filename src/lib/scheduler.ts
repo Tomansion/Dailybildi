@@ -34,9 +34,4 @@ class DailyBlockScheduler {
   }
 }
 
-// Initialize scheduler when server starts
-if (process.env.NODE_ENV !== 'test') {
-  DailyBlockScheduler.initialize()
-}
-
 export default DailyBlockScheduler
