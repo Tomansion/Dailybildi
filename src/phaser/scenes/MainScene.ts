@@ -233,16 +233,17 @@ export class MainScene extends Phaser.Scene {
   private updateParallax() {
     const camera = this.cameras.main
     
+    // Use camera world view center for proper parallax alignment
+    const cameraCenterX = camera.worldView.centerX
+    const cameraCenterY = camera.worldView.centerY
+    
     for (const layer of this.parallaxLayers) {
-      // distance 0 = moves with camera (stays in place in world coords)
-      // distance 1 = doesn't move (stays fixed relative to camera center)
-      // Parallax factor: how much the layer moves relative to camera
-      const parallaxFactor = 1 - layer.distance
-      
-      // Position the layer based on camera scroll and parallax factor
+      // distance 0 = stays fixed in world coords (no offset)
+      // distance 1 = stays fixed on screen (follows camera center)
+      // Position the layer based on camera center and distance factor
       layer.image.setPosition(
-        camera.scrollX * (1 - parallaxFactor),
-        camera.scrollY * (1 - parallaxFactor)
+        cameraCenterX * layer.distance,
+        cameraCenterY * layer.distance
       )
     }
   }

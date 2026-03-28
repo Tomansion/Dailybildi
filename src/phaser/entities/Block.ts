@@ -39,8 +39,14 @@ export class Block extends Phaser.GameObjects.Sprite {
     this.setFlipY(blockData.flipY)
     this.setDepth(this.layer * 1000 + this.zOrder)
 
-    // Make interactive
-    this.setInteractive({ draggable: true, useHandCursor: true })
+    // Make interactive with pixel-perfect hit detection
+    // alphaTolerance: only pixels with alpha > 1 are considered clickable
+    this.setInteractive({
+      draggable: true,
+      useHandCursor: true,
+      pixelPerfect: true,
+      alphaTolerance: 1
+    })
 
     scene.add.existing(this)
   }
