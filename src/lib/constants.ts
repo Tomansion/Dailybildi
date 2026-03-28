@@ -1,6 +1,5 @@
-// Game constants
-export const BLOCK_SIZE = 64 // pixels
-export const GRID_SIZE = BLOCK_SIZE / 2 // 32 pixels
+// Game constants (defaults, can be overridden by universe config)
+export const BLOCK_SIZE = 64 // pixels (default, use universe config.blockSize)
 export const CAMERA_BOUNDS = 10000 // ±10000 grid units
 export const INITIAL_BLOCKS_COUNT = 30
 export const DAILY_BLOCKS_COUNT = 10

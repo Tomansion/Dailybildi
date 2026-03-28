@@ -13,6 +13,7 @@ interface WorldImageConfig {
 interface UniverseConfig {
   backgroundColor: string
   worldImageScale: number
+  blockSize: number
   worldImages: WorldImageConfig[]
 }
 
@@ -27,7 +28,7 @@ export class MainScene extends Phaser.Scene {
   private selectedBlock: Block | null = null
   private phantomBlock: Phaser.GameObjects.Sprite | null = null
   private selectedBlockData: { imagePath: string; blockCatalogKey: string } | null = null
-  private universeConfig: UniverseConfig = { backgroundColor: '#000000', worldImageScale: 1, worldImages: [] }
+  private universeConfig: UniverseConfig = { backgroundColor: '#000000', worldImageScale: 1, blockSize: 64, worldImages: [] }
   private parallaxLayers: ParallaxLayer[] = []
   private worldBounds = { width: 0, height: 0 }
   
@@ -48,6 +49,9 @@ export class MainScene extends Phaser.Scene {
   create() {
     // Get universe config
     this.universeConfig = this.cache.json.get('universe_config') || this.universeConfig
+    
+    // Configure grid manager with block size from config
+    GridManager.configure(this.universeConfig.blockSize)
     
     // Set background color
     this.cameras.main.setBackgroundColor(this.universeConfig.backgroundColor)
