@@ -4,11 +4,19 @@ export class CameraManager {
   private isDragging: boolean = false
   private dragStartX: number = 0
   private dragStartY: number = 0
+  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
+  private readonly cameraMoveSpeed: number = 10
+  private blockDragInProgress: boolean = false
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
     this.camera = scene.cameras.main
     this.setupCamera()
+  }
+
+  // Called by MainScene when a block drag starts/ends
+  setBlockDragInProgress(inProgress: boolean) {
+    this.blockDragInProgress = inProgress
   }
 
   private setupCamera() {
@@ -19,54 +27,78 @@ export class CameraManager {
     const bound = 10000 * 64 // CAMERA_BOUNDS * BLOCK_SIZE
     this.camera.setBounds(-bound, -bound, bound * 2, bound * 2)
 
-    // Setup input
+    // Setup keyboard input here, but defer pointer input to setupInput()
+    this.setupArrowKeys()
+  }
+
+  setupInput() {
+    // Setup pointer-based input (called after MainScene sets up its handlers)
     this.setupMiddleClickDrag()
     this.setupZoom()
   }
 
+  private setupArrowKeys() {
+    if (this.scene.input.keyboard) 
+      this.cursors = this.scene.input.keyboard.createCursorKeys()
+  }
+
   private setupMiddleClickDrag() {
     this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.middleButtonDown()) {
-        this.isDragging = true
-        this.dragStartX = pointer.x + this.camera.scrollX
-        this.dragStartY = pointer.y + this.camera.scrollY
-      }
+      // Don't start camera drag if a block is being dragged
+      if (this.blockDragInProgress) return
+      
+      this.isDragging = true
+      this.dragStartX = pointer.x
+      this.dragStartY = pointer.y
     })
 
     this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDragging && pointer.middleButtonDown()) {
-        const newScrollX = this.dragStartX - pointer.x
-        const newScrollY = this.dragStartY - pointer.y
-        this.camera.setScroll(newScrollX, newScrollY)
+      // Don't move camera if a block is being dragged
+      if (this.isDragging && !this.blockDragInProgress) {
+        // Scale by zoom for 1:1 feeling regardless of zoom level
+        const deltaX = (this.dragStartX - pointer.x) / this.camera.zoom
+        const deltaY = (this.dragStartY - pointer.y) / this.camera.zoom
+        
+        this.camera.scrollX += deltaX
+        this.camera.scrollY += deltaY
+        
+        // Update drag start for next frame
+        this.dragStartX = pointer.x
+        this.dragStartY = pointer.y
       }
     })
 
-    this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.middleButtonDown()) {
-        this.isDragging = false
-      }
+    this.scene.input.on('pointerup', () => {
+      this.isDragging = false
     })
   }
 
   private setupZoom() {
     this.scene.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number) => {
-      const zoomAmount = deltaY > 0 ? -0.1 : 0.1
-      const newZoom = Phaser.Math.Clamp(
-        this.camera.zoom + zoomAmount,
-        0.5,
-        2.0
-      )
-
-      // Zoom towards mouse position
-      const worldPoint = this.camera.getWorldPoint(pointer.x, pointer.y)
       const oldZoom = this.camera.zoom
+      const zoomAmount = deltaY > 0 ? -0.1 : 0.1
+      const newZoom = Phaser.Math.Clamp(oldZoom + zoomAmount, 0.5, 2.0)
+
+      if (newZoom === oldZoom) return
+
+      // Get the pointer position relative to camera center
+      const centerX = this.camera.width / 2
+      const centerY = this.camera.height / 2
       
+      // Distance from pointer to center of screen
+      const offsetX = pointer.x - centerX
+      const offsetY = pointer.y - centerY
+      
+      // World position under cursor before zoom
+      const worldX = this.camera.scrollX + offsetX / oldZoom
+      const worldY = this.camera.scrollY + offsetY / oldZoom
+
+      // Apply new zoom
       this.camera.setZoom(newZoom)
-      
-      // Adjust camera position to zoom towards cursor
-      const newWorldPoint = this.camera.getWorldPoint(pointer.x, pointer.y)
-      this.camera.scrollX -= newWorldPoint.x - worldPoint.x
-      this.camera.scrollY -= newWorldPoint.y - worldPoint.y
+
+      // Adjust scroll so the same world point stays under cursor
+      this.camera.scrollX = worldX - offsetX / newZoom
+      this.camera.scrollY = worldY - offsetY / newZoom
     })
   }
 
@@ -76,5 +108,24 @@ export class CameraManager {
 
   goHome() {
     this.centerOn(0, 0)
+  }
+
+  update() {
+    if (!this.cursors) return
+
+    const speed = this.cameraMoveSpeed / this.camera.zoom
+
+    if (this.cursors.left.isDown) {
+      this.camera.scrollX -= speed
+    }
+    if (this.cursors.right.isDown) {
+      this.camera.scrollX += speed
+    }
+    if (this.cursors.up.isDown) {
+      this.camera.scrollY -= speed
+    }
+    if (this.cursors.down.isDown) {
+      this.camera.scrollY += speed
+    }
   }
 }

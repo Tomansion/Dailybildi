@@ -19,6 +19,9 @@ export class PhaserGameWrapper {
 
     this.game = new Phaser.Game(config)
     
+    // Prevent browser context menu on right-click
+    this.game.canvas.oncontextmenu = function (e) { e.preventDefault() }
+    
     // Get scene reference
     this.game.events.once('ready', () => {
       this.mainScene = this.game!.scene.getScene('MainScene') as MainScene

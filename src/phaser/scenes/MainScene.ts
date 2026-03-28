@@ -37,6 +37,9 @@ export class MainScene extends Phaser.Scene {
     // Setup input handlers
     this.setupInputHandlers()
 
+    // Setup camera input (after MainScene input handlers to avoid removal)
+    this.cameraManager.setupInput()
+
     // Center camera on world
     this.cameraManager.goHome()
   }
@@ -63,6 +66,7 @@ export class MainScene extends Phaser.Scene {
   private setupInputHandlers() {
     // Remove any existing listeners first to prevent duplicates
     this.input.removeAllListeners('pointerdown')
+    this.input.removeAllListeners('dragstart')
     this.input.removeAllListeners('drag')
     this.input.removeAllListeners('dragend')
     
@@ -88,6 +92,12 @@ export class MainScene extends Phaser.Scene {
     })
 
     // Setup drag handlers for placed blocks
+    this.input.on('dragstart', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
+      if (gameObject instanceof Block) 
+        this.cameraManager.setBlockDragInProgress(true)
+      
+    })
+
     this.input.on('drag', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject, dragX: number, dragY: number) => {
       if (gameObject instanceof Block) {
         const snapped = GridManager.snapToGrid(dragX, dragY)
@@ -102,6 +112,8 @@ export class MainScene extends Phaser.Scene {
 
     this.input.on('dragend', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
       if (gameObject instanceof Block) {
+        this.cameraManager.setBlockDragInProgress(false)
+        
         const grid = GridManager.pixelsToGrid(gameObject.x, gameObject.y)
         gameObject.updatePosition(grid.gridX, grid.gridY)
         
@@ -117,6 +129,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   update() {
+    // Update camera controls
+    this.cameraManager.update()
+
     // Update phantom block position
     if (this.phantomBlock && this.selectedBlockData) {
       const pointer = this.input.activePointer
