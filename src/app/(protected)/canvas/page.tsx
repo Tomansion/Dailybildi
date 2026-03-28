@@ -7,32 +7,17 @@ import { Button } from '@/components/ui/button'
 import { Inventory } from '@/components/editor/Inventory'
 import { HomeButton } from '@/components/editor/HomeButton'
 import { BlockActionButtons } from '@/components/editor/BlockActionButtons'
+import { PhaserCanvas } from '@/components/editor/PhaserCanvas'
 import { InventoryBlockWithData } from '@/types/inventory'
 import { PlacedBlockWithData } from '@/types/world'
 import { useRouter } from 'next/navigation'
-
-// Lazy load PhaserCanvas
-const PhaserCanvas = dynamic(
-  () => import('@/components/editor/PhaserCanvas').then((mod) => ({
-    default: mod.PhaserCanvas,
-  })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center w-full h-full">
-        <p className="text-muted-foreground">Loading canvas...</p>
-      </div>
-    ),
-  }
-)
-
-import dynamic from 'next/dynamic'
+import type { PhaserSceneHandle } from '@/components/editor/PhaserCanvas'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function CanvasPage() {
   const router = useRouter()
-  const containerRef = useRef<HTMLDivElement>(null)
+  const phaserRef = useRef<PhaserSceneHandle>(null)
   const [selectedBlockKey, setSelectedBlockKey] = useState<string | null>(null)
   const [selectedPlacedBlockKey, setSelectedPlacedBlockKey] = useState<string | null>(null)
   const [selectedBlockForPlacement, setSelectedBlockForPlacement] = useState<any>(null)
@@ -103,41 +88,29 @@ export default function CanvasPage() {
   }
 
   const handleHomeClick = () => {
-    const scene = (containerRef.current as any)?.__phaserScene
-    if (scene) {
-      scene.goHome()
-    }
+    phaserRef.current?.goHome()
   }
 
   const handleRotate = () => {
-    const scene = (containerRef.current as any)?.__phaserScene
-    if (scene) {
-      scene.rotateSelectedBlock()
-    }
+    console.log("Rotate");
+    phaserRef.current?.rotateSelectedBlock()
   }
 
   const handleFlipHorizontal = () => {
-    const scene = (containerRef.current as any)?.__phaserScene
-    if (scene) {
-      scene.flipSelectedBlockHorizontal()
-    }
+    phaserRef.current?.flipSelectedBlockHorizontal()
   }
 
   const handleFlipVertical = () => {
-    const scene = (containerRef.current as any)?.__phaserScene
-    if (scene) {
-      scene.flipSelectedBlockVertical()
-    }
+    phaserRef.current?.flipSelectedBlockVertical()
   }
 
   const handleDiscard = async () => {
-    const scene = (containerRef.current as any)?.__phaserScene
-    if (scene && selectedPlacedBlockKey) {
+    if (selectedPlacedBlockKey) {
       try {
         await fetch(`/api/world/blocks/${selectedPlacedBlockKey}`, {
           method: 'DELETE',
         })
-        scene.removeSelectedBlock()
+        phaserRef.current?.removeSelectedBlock()
         setSelectedPlacedBlockKey(null)
         mutate('/api/world')
         mutate('/api/inventory')
@@ -162,8 +135,9 @@ export default function CanvasPage() {
       </div>
 
       {/* Canvas Area */}
-      <div className="flex-1 relative" ref={containerRef}>
+      <div className="flex-1 relative">
         <PhaserCanvas
+          ref={phaserRef}
           placedBlocks={placedBlocks}
           blockImages={blockImages}
           onBlockPlaced={handleBlockPlaced}

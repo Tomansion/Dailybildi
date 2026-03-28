@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+
+export interface PhaserSceneHandle {
+  rotateSelectedBlock: () => void;
+  flipSelectedBlockHorizontal: () => void;
+  flipSelectedBlockVertical: () => void;
+  removeSelectedBlock: () => void;
+  goHome: () => void;
+}
 
 interface PhaserCanvasProps {
   placedBlocks: any[];
@@ -26,14 +34,17 @@ interface PhaserCanvasProps {
   } | null;
 }
 
-export function PhaserCanvas({
-  placedBlocks,
-  blockImages,
-  onBlockPlaced,
-  onBlockUpdated,
-  onBlockSelected,
-  selectedBlockForPlacement,
-}: PhaserCanvasProps) {
+const PhaserCanvasComponent = forwardRef<PhaserSceneHandle, PhaserCanvasProps>(function PhaserCanvas(
+  {
+    placedBlocks,
+    blockImages,
+    onBlockPlaced,
+    onBlockUpdated,
+    onBlockSelected,
+    selectedBlockForPlacement,
+  },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<any>(null);
   const sceneRef = useRef<any>(null);
@@ -127,13 +138,22 @@ export function PhaserCanvas({
     }
   }, [isReady, selectedBlockForPlacement]);
 
-  // Expose scene methods
-  useEffect(() => {
-    if (isReady && sceneRef.current) {
-      // Make scene methods available to parent components via ref
-      (containerRef.current as any).__phaserScene = sceneRef.current;
-    }
-  }, [isReady]);
+  // Expose scene methods via forwardRef
+  useImperativeHandle(
+    ref,
+    () => ({
+      rotateSelectedBlock: () =>{
+        console.log("rotateSelectedBlock called from parent");
+        sceneRef.current?.rotateSelectedBlock()},
+      flipSelectedBlockHorizontal: () =>
+        sceneRef.current?.flipSelectedBlockHorizontal(),
+      flipSelectedBlockVertical: () =>
+        sceneRef.current?.flipSelectedBlockVertical(),
+      removeSelectedBlock: () => sceneRef.current?.removeSelectedBlock(),
+      goHome: () => sceneRef.current?.goHome(),
+    }),
+    [isReady]
+  );
 
   return (
     <div
@@ -145,4 +165,9 @@ export function PhaserCanvas({
       }}
     />
   );
-}
+});
+
+PhaserCanvasComponent.displayName = "PhaserCanvas";
+
+export const PhaserCanvas = PhaserCanvasComponent;
+export default PhaserCanvasComponent;
