@@ -8,10 +8,10 @@ export class CameraManager {
   private readonly cameraMoveSpeed: number = 10
   private blockDragInProgress: boolean = false
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, worldWidth?: number, worldHeight?: number) {
     this.scene = scene
     this.camera = scene.cameras.main
-    this.setupCamera()
+    this.setupCamera(worldWidth, worldHeight)
   }
 
   // Called by MainScene when a block drag starts/ends
@@ -19,13 +19,30 @@ export class CameraManager {
     this.blockDragInProgress = inProgress
   }
 
-  private setupCamera() {
+  private setupCamera(worldWidth?: number, worldHeight?: number) {
     // Set zoom limits
     this.camera.setZoom(1)
 
-    // Enable camera bounds (very large for infinite feel)
-    const bound = 10000 * 64 // CAMERA_BOUNDS * BLOCK_SIZE
-    this.camera.setBounds(-bound, -bound, bound * 2, bound * 2)
+    // Set camera bounds: 2x the world image size, or default large bounds
+    let boundWidth: number
+    let boundHeight: number
+    
+    if (worldWidth && worldHeight) {
+      boundWidth = worldWidth
+      boundHeight = worldHeight
+    } else {
+      // Fallback to large default bounds
+      const defaultBound = 10000 * 64
+      boundWidth = defaultBound * 2
+      boundHeight = defaultBound * 2
+    }
+    
+    this.camera.setBounds(
+      -boundWidth,
+      -boundHeight,
+      boundWidth * 2,
+      boundHeight * 2
+    )
 
     // Setup keyboard input here, but defer pointer input to setupInput()
     this.setupArrowKeys()

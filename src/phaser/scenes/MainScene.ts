@@ -3,7 +3,23 @@ import { CameraManager } from '../managers/CameraManager'
 import { GridManager } from '../managers/GridManager'
 import { Block } from '../entities/Block'
 import { PlacedBlockWithData } from '@/types/world'
-import { WORLD_BACKGROUND_PATH } from '@/lib/constants'
+import { UNIVERSE_CONFIG_PATH, UNIVERSE_ID } from '@/lib/constants'
+
+interface WorldImageConfig {
+  path: string
+  distance: number
+}
+
+interface UniverseConfig {
+  backgroundColor: string
+  worldImageScale: number
+  worldImages: WorldImageConfig[]
+}
+
+interface ParallaxLayer {
+  image: Phaser.GameObjects.Image
+  distance: number
+}
 
 export class MainScene extends Phaser.Scene {
   private cameraManager!: CameraManager
@@ -11,6 +27,9 @@ export class MainScene extends Phaser.Scene {
   private selectedBlock: Block | null = null
   private phantomBlock: Phaser.GameObjects.Sprite | null = null
   private selectedBlockData: { imagePath: string; blockCatalogKey: string } | null = null
+  private universeConfig: UniverseConfig = { backgroundColor: '#000000', worldImageScale: 1, worldImages: [] }
+  private parallaxLayers: ParallaxLayer[] = []
+  private worldBounds = { width: 0, height: 0 }
   
   // Callbacks to communicate with React
   private onBlockPlacedCallback?: (blockKey: string, gridX: number, gridY: number) => void
@@ -22,17 +41,61 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load world background
-    this.load.image('world_bg', WORLD_BACKGROUND_PATH)
+    // Load universe config first
+    this.load.json('universe_config', UNIVERSE_CONFIG_PATH)
   }
 
   create() {
+    // Get universe config
+    this.universeConfig = this.cache.json.get('universe_config') || this.universeConfig
     
-    // Add world background
-    this.add.image(0, 0, 'world_bg').setOrigin(0.5, 0.5).setDepth(-1000)
+    // Set background color
+    this.cameras.main.setBackgroundColor(this.universeConfig.backgroundColor)
+    
+    // Load world images
+    const basePath = `/univers/${UNIVERSE_ID}/`
+    for (let i = 0; i < this.universeConfig.worldImages.length; i++) {
+      const imgConfig = this.universeConfig.worldImages[i]
+      this.load.image(`world_bg_${i}`, basePath + imgConfig.path)
+    }
+    
+    this.load.once('complete', () => {
+      this.createWorldLayers()
+      this.setupScene()
+    })
+    this.load.start()
+  }
 
-    // Setup camera
-    this.cameraManager = new CameraManager(this)
+  private createWorldLayers() {
+    const scale = this.universeConfig.worldImageScale
+    
+    // Sort by distance descending (furthest first, so they render behind)
+    const sortedImages = [...this.universeConfig.worldImages]
+      .map((config, index) => ({ ...config, index }))
+      .sort((a, b) => b.distance - a.distance)
+    
+    for (const imgConfig of sortedImages) {
+      const image = this.add.image(0, 0, `world_bg_${imgConfig.index}`)
+        .setOrigin(0.5, 0.5)
+        .setScale(scale)
+        .setDepth(-900 - imgConfig.distance * 100) // Closest (0) = highest depth, furthest (1) = lowest depth
+      
+      this.parallaxLayers.push({
+        image,
+        distance: imgConfig.distance
+      })
+      
+      // Use the closest layer (distance 0) for bounds calculation
+      if (imgConfig.distance === 0) {
+        this.worldBounds.width = image.displayWidth
+        this.worldBounds.height = image.displayHeight
+      }
+    }
+  }
+
+  private setupScene() {
+    // Setup camera with bounds based on world image (2x the image size)
+    this.cameraManager = new CameraManager(this, this.worldBounds.width, this.worldBounds.height)
 
     // Setup input handlers
     this.setupInputHandlers()
@@ -61,6 +124,10 @@ export class MainScene extends Phaser.Scene {
     // Destroy all blocks
     this.blocks.forEach(block => block.destroy())
     this.blocks.clear()
+    
+    // Clear parallax layers
+    this.parallaxLayers.forEach(layer => layer.image.destroy())
+    this.parallaxLayers = []
   }
 
   private setupInputHandlers() {
@@ -129,8 +196,14 @@ export class MainScene extends Phaser.Scene {
   }
 
   update() {
+    // Don't run until scene is fully initialized
+    if (!this.cameraManager) return
+    
     // Update camera controls
     this.cameraManager.update()
+
+    // Update parallax layers
+    this.updateParallax()
 
     // Update phantom block position
     if (this.phantomBlock && this.selectedBlockData) {
@@ -138,6 +211,23 @@ export class MainScene extends Phaser.Scene {
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
       const snapped = GridManager.snapToGrid(worldPoint.x, worldPoint.y)
       this.phantomBlock.setPosition(snapped.x, snapped.y)
+    }
+  }
+
+  private updateParallax() {
+    const camera = this.cameras.main
+    
+    for (const layer of this.parallaxLayers) {
+      // distance 0 = moves with camera (stays in place in world coords)
+      // distance 1 = doesn't move (stays fixed relative to camera center)
+      // Parallax factor: how much the layer moves relative to camera
+      const parallaxFactor = 1 - layer.distance
+      
+      // Position the layer based on camera scroll and parallax factor
+      layer.image.setPosition(
+        camera.scrollX * (1 - parallaxFactor),
+        camera.scrollY * (1 - parallaxFactor)
+      )
     }
   }
 
@@ -154,16 +244,27 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  loadBlockImages(blockImages: Array<{ id: string; layer: number; rarity: number; imagePath: string }>) {
+  loadBlockImages(blockImages: Array<{ id: string; layer: number; rarity: number; imagePath: string }>, onComplete?: () => void) {
+    let needsLoad = false
+    
     for (const block of blockImages) {
       const key = `block_${block.id}_${block.layer}_${block.rarity}`
       
       if (!this.textures.exists(key)) {
         this.load.image(key, block.imagePath)
+        needsLoad = true
       }
     }
     
-    this.load.start()
+    if (needsLoad) {
+      this.load.once('complete', () => {
+        if (onComplete) onComplete()
+      })
+      this.load.start()
+    } else {
+      // All images already loaded
+      if (onComplete) onComplete()
+    }
   }
 
   selectBlockForPlacement(blockData: { imagePath: string; blockCatalogKey: string; id: string; layer: number; rarity: number }) {

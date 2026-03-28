@@ -101,19 +101,20 @@ export function PhaserCanvas({
     };
   }, []);
 
-  // Load block images when ready
+  // Load block images and then placed blocks when ready
   useEffect(() => {
     if (isReady && sceneRef.current && blockImages.length > 0) {
-      sceneRef.current.loadBlockImages(blockImages);
-    }
-  }, [isReady, blockImages]);
-
-  // Load placed blocks when ready
-  useEffect(() => {
-    if (isReady && sceneRef.current) {
+      sceneRef.current.loadBlockImages(blockImages, () => {
+        // Load blocks only after images are loaded
+        if (sceneRef.current) {
+          sceneRef.current.loadBlocks(placedBlocks);
+        }
+      });
+    } else if (isReady && sceneRef.current && blockImages.length === 0) {
+      // No images to load, load blocks directly
       sceneRef.current.loadBlocks(placedBlocks);
     }
-  }, [isReady, placedBlocks]);
+  }, [isReady, blockImages, placedBlocks]);
 
   // Handle block selection for placement
   useEffect(() => {

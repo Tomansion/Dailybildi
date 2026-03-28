@@ -1,0 +1,10 @@
+{
+  "backgroundColor": "#fff6e7",
+  "worldImageScale": 0.5,
+  "worldImages": [
+    { "path": "world1.png", "distance": 0 },
+    { "path": "world2.png", "distance": 0.15 },
+    { "path": "world3.png", "distance": 0.3 },
+    { "path": "world4.png", "distance": 0.4 }
+  ]
+}

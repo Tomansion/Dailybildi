@@ -7,7 +7,7 @@ export const DAILY_BLOCKS_COUNT = 10
 
 // Universe
 export const UNIVERSE_ID = 'ink_castle'
-export const WORLD_BACKGROUND_PATH = `/univers/${UNIVERSE_ID}/world.png`
+export const UNIVERSE_CONFIG_PATH = `/univers/${UNIVERSE_ID}/config.json`
 export const TILES_PATH = `/univers/${UNIVERSE_ID}/tiles/`
 
 // Rarity weights (lower rarity = higher weight)
