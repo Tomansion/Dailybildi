@@ -78,7 +78,19 @@ export class MainScene extends Phaser.Scene {
       const image = this.add.image(0, 0, `world_bg_${imgConfig.index}`)
         .setOrigin(0.5, 0.5)
         .setScale(scale)
-        .setDepth(-900 - imgConfig.distance * 100) // Closest (0) = highest depth, furthest (1) = lowest depth
+      
+      // Depth calculation:
+      // Negative distance (foreground): above blocks (5000 + range)
+      // Distance 0 to 1 (background): below blocks (-900 to -1000)
+      let depth: number
+      if (imgConfig.distance < 0) {
+        // Negative distance = foreground, more negative = higher depth
+        depth = 5000 - imgConfig.distance * 1000
+      } else {
+        // Positive distance = background
+        depth = -900 - imgConfig.distance * 100
+      }
+      image.setDepth(depth)
       
       this.parallaxLayers.push({
         image,
