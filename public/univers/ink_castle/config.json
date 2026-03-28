@@ -1,11 +1,13 @@
 {
   "backgroundColor": "#fff6e7",
   "worldImageScale": 0.5,
+  "blockSize": 40,
   "worldImages": [
-    { "path": "light.png", "distance": -0.2 },
-    { "path": "world1.png", "distance": 0 },
-    { "path": "world2.png", "distance": 0.15 },
-    { "path": "world3.png", "distance": 0.3 },
-    { "path": "world4.png", "distance": 0.4 }
+    { "path": "world/light.png", "distance": -0.2 },
+    { "path": "world/ground.png", "distance": 0 },
+    { "path": "world/world1.png", "distance": 0.1 },
+    { "path": "world/world2.png", "distance": 0.2 },
+    { "path": "world/world3.png", "distance": 0.3 },
+    { "path": "world/clouds.png", "distance": 0.4 }
   ]
 }
