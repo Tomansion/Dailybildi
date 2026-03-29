@@ -46,7 +46,12 @@ COPY --from=builder /app/src ./src
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 && \
     mkdir -p /app/data && \
-    chown -R nextjs:nodejs /app/data
+    chown -R nextjs:nodejs /app/data && \
+    chmod 755 /app/data
+
+# Run migrations and seeding as root (before user switch)
+RUN npx prisma migrate deploy || true && \
+    npm run db:seed || true
 
 USER nextjs
 
@@ -66,5 +71,5 @@ ENV NEXTAUTH_URL=http://localhost:3000
 ENV DATABASE_URL=file:/app/data/dev.db
 ENV NEXTAUTH_SECRET=change-me-in-production-please
 
-# Run migrations, seed database, and start server
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npm start"]
+# Start server (migrations already applied)
+CMD ["npm", "start"]
