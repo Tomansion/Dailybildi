@@ -12,6 +12,16 @@ interface BlockCardProps {
   blockData: { id: string; layer: number; rarity: number }
   isSelected: boolean
   onClick: () => void
+  backgroundColor?: string
+}
+
+// Utility function to darken a hex color for visual effect
+const darkenColor = (color: string): string => {
+  const hex = color.replace('#', '')
+  const r = Math.max(0, parseInt(hex.substring(0, 2), 16) - 50)
+  const g = Math.max(0, parseInt(hex.substring(2, 4), 16) - 50)
+  const b = Math.max(0, parseInt(hex.substring(4, 6), 16) - 50)
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
 }
 
 export function BlockCard({
@@ -21,11 +31,14 @@ export function BlockCard({
   blockData,
   isSelected,
   onClick,
+  backgroundColor,
 }: BlockCardProps) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation() // Prevent click from bubbling to canvas
     onClick()
   }
+
+  const darkenedBg = backgroundColor ? darkenColor(backgroundColor) : undefined
 
   return (
     <Card
@@ -34,6 +47,7 @@ export function BlockCard({
         isSelected && "border-primary border-2 shadow-lg"
       )}
       onClick={handleClick}
+      style={darkenedBg ? { backgroundColor: darkenedBg } : undefined}
     >
       <CardContent className="p-3">
         <div className="relative w-16 h-16 mx-auto">

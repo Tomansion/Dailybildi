@@ -15,7 +15,7 @@ export class GridManager {
 
   static configure(blockSize: number) {
     this._blockSize = blockSize
-    this._gridSize = blockSize / 2
+    this._gridSize = blockSize / 4
   }
 
   static gridToPixels(gridX: number, gridY: number): { x: number; y: number } {

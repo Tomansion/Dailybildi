@@ -101,6 +101,10 @@ export class InventoryService {
     await InventoryQueries.removeBlock(userId, blockKey, quantity)
   }
 
+  static async clearInventory(userId: string): Promise<void> {
+    await InventoryQueries.clearInventory(userId)
+  }
+
   static async addBlockToInventory(userId: string, blockKey: string, quantity: number = 1): Promise<void> {
     const inventoryBlocks: InventoryBlock[] = [{
       blockCatalogKey: blockKey,

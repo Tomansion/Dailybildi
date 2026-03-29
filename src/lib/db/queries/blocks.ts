@@ -100,4 +100,12 @@ export class BlockQueries {
       createdAt: selection.createdAt.toISOString(),
     }
   }
+
+  static async resetDailySelection(date: string): Promise<void> {
+    await prisma.dailyBlockSelection.delete({
+      where: { date },
+    }).catch(() => {
+      // Silently ignore if not found
+    })
+  }
 }

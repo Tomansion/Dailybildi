@@ -1,6 +1,8 @@
 import { BlockQueries } from '@/lib/db/queries/blocks'
 import { BlockCatalog } from '@/types/block'
 import { RARITY_WEIGHTS, DAILY_BLOCKS_COUNT } from '@/lib/constants'
+import { UserQueries } from '@/lib/db/queries/users'
+import { InventoryService } from './InventoryService'
 
 export class BlockService {
   static async selectDailyBlocks(): Promise<string[]> {
@@ -48,11 +50,40 @@ export class BlockService {
     return selection.selectedBlocks
   }
 
+  static async resetDailySelection(date: string): Promise<void> {
+    await BlockQueries.resetDailySelection(date)
+  }
+
   static async getAllBlocksFromCatalog(): Promise<BlockCatalog[]> {
     return BlockQueries.getAllBlocks()
   }
 
   static async getBlocksByKeys(keys: string[]): Promise<BlockCatalog[]> {
     return BlockQueries.getBlocksByKeys(keys)
+  }
+
+  static async distributeDailyBlocksToAllUsers(): Promise<void> {
+    // Get today's daily blocks
+    const today = new Date().toISOString().split('T')[0]
+    const selection = await BlockQueries.getDailySelection(today)
+    
+    if (!selection) {
+      throw new Error('No daily selection for today')
+    }
+
+    // Get all users
+    const users = await UserQueries.getAllUsers()
+
+    // Add blocks to each user's inventory
+    for (const user of users) {
+      try {
+        // Clear old blocks first
+        await InventoryService.clearInventory(user._key)
+        // Then add new daily blocks
+        await InventoryService.addDailyBlocksToInventory(user._key, selection.selectedBlocks)
+      } catch (error) {
+        console.error(`Failed to add daily blocks to user ${user._key}:`, error)
+      }
+    }
   }
 }

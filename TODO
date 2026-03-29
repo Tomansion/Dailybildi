@@ -1,0 +1,5 @@
+✔ Fix tiles background @done(26-03-29 19:46)
+✔ Display time before new blocks @done(26-03-29 19:47)
+☐ Fix drag drop not working for blocks
+☐ Fix place click on existing block not placing the block
+☐ Generate & display a preview of the world. Or canvas rendering ?
