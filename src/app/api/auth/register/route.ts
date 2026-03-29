@@ -7,9 +7,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { username, password } = body
 
-    console.log("1");
-    
-    
     // Validation
     if (!username  || !password) {
       return NextResponse.json(
@@ -18,7 +15,6 @@ export async function POST(request: Request) {
       )
     }
     
-    console.log("2");
     if (username.length < 3) {
       return NextResponse.json(
         { success: false, error: 'Username must be at least 3 characters' },
@@ -32,15 +28,12 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
-    console.log("3");
     
     // Create user
     const user = await AuthService.createUser({ username, password })
     
-    console.log("4");
     // Initialize inventory and world
     await InventoryService.initializeUserInventory(user._key)
-    console.log("5");
 
     return NextResponse.json({
       success: true,

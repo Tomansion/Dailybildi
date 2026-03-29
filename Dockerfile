@@ -1,12 +1,15 @@
 # Multi-stage build for DailyBildi
 
-# Stage 1: Build
+# Stage 1: Build =====================================================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files and prisma schema
 COPY package*.json ./
+COPY prisma ./prisma
+
+# Install dependencies
 RUN npm ci
 
 # Copy source code
@@ -18,24 +21,32 @@ RUN npm run postinstall
 # Build Next.js application
 RUN npm run build
 
-# Stage 2: Runtime
+# Stage 2: Runtime =====================================================
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Install only production dependencies
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
+# Copy package files and prisma schema
 COPY package*.json ./
+COPY prisma ./prisma
+
+# Install only production dependencies
 RUN npm ci --only=production
 
-# Copy Prisma schema and generated client
-COPY prisma ./prisma
+# Copy built application and assets
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/src ./src
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+    adduser -S nextjs -u 1001 && \
+    mkdir -p /app/data && \
+    chown -R nextjs:nodejs /app/data
 
 USER nextjs
 
@@ -46,9 +57,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 3000
 
+# Volume for database persistence
+VOLUME ["/app/data"]
+
 # Environment defaults
 ENV NODE_ENV=production
 ENV NEXTAUTH_URL=http://localhost:3000
+ENV DATABASE_URL=file:/app/data/dev.db
+ENV NEXTAUTH_SECRET=change-me-in-production-please
 
-# Run migrations and start server
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+# Run migrations, seed database, and start server
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npm start"]
