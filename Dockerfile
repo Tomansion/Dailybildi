@@ -42,16 +42,16 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/src ./src
 
+# Copy docker entrypoint script
+COPY docker-entrypoint.sh ./
+
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 && \
     mkdir -p /app/data && \
     chown -R nextjs:nodejs /app/data && \
-    chmod 755 /app/data
-
-# Run migrations and seeding as root (before user switch)
-RUN npx prisma migrate deploy || true && \
-    npm run db:seed || true
+    chmod 755 /app/data && \
+    chmod +x /app/docker-entrypoint.sh
 
 USER nextjs
 
@@ -71,5 +71,5 @@ ENV NEXTAUTH_URL=http://localhost:3000
 ENV DATABASE_URL=file:/app/data/dev.db
 ENV NEXTAUTH_SECRET=change-me-in-production-please
 
-# Start server (migrations already applied)
-CMD ["npm", "start"]
+# Start server with migrations via entrypoint
+CMD ["/app/docker-entrypoint.sh"]

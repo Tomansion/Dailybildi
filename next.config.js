@@ -6,8 +6,10 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: ['node-cron', 'arangojs', 'bcryptjs'],
-    instrumentationHook: true,
+    // Disable instrumentationHook during build to reduce RAM usage
+    instrumentationHook: process.env.NODE_ENV === 'production',
   },
+  swcMinify: true,
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -16,6 +18,13 @@ const nextConfig = {
         path: false,
       };
     }
+    
+    // Optimize webpack config to reduce memory during build
+    config.optimization = {
+      ...config.optimization,
+      nodeEnv: false,
+      minimize: true,
+    };
     
     return config;
   },
