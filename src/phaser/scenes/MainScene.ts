@@ -156,7 +156,13 @@ export class MainScene extends Phaser.Scene {
     // Handle canvas click for block placement
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.leftButtonDown() && !pointer.middleButtonDown()) {
-        // Check if clicking on a block
+        // If a placement is active, always try to place
+        if (this.selectedBlockData && this.phantomBlock) {
+          this.placeBlockAtPointer(pointer)
+          return
+        }
+        
+        // Check if clicking on a block (only if no placement is active)
         const clickedObjects = this.input.hitTestPointer(pointer)
         
         if (clickedObjects.length > 0) {
@@ -165,11 +171,6 @@ export class MainScene extends Phaser.Scene {
             this.selectBlock(clicked)
             return
           }
-        }
-
-        // Place new block if one is selected for placement
-        if (this.selectedBlockData && this.phantomBlock) {
-          this.placeBlockAtPointer(pointer)
         }
       }
     })
@@ -341,6 +342,23 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.cancelBlockPlacement()
+  }
+
+  placeBlockAtDropPosition(blockData: { imagePath: string; blockCatalogKey: string; id: string; layer: number; rarity: number }, pointer: { x: number; y: number }) {
+    if (!blockData) return
+
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+    const grid = GridManager.pixelsToGrid(worldPoint.x, worldPoint.y)
+
+    if (!GridManager.isWithinBounds(grid.gridX, grid.gridY)) {
+      console.warn('Cannot place block outside bounds')
+      return
+    }
+
+    // Notify React to handle API call
+    if (this.onBlockPlacedCallback) {
+      this.onBlockPlacedCallback(blockData.blockCatalogKey, grid.gridX, grid.gridY)
+    }
   }
 
   private selectBlock(block: Block) {

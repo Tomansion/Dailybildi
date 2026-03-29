@@ -155,11 +155,47 @@ const PhaserCanvasComponent = forwardRef<PhaserSceneHandle, PhaserCanvasProps>(f
     [isReady]
   );
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    
+    if (!isReady || !sceneRef.current) return
+    
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'))
+      
+      // Get the canvas position relative to viewport
+      const container = containerRef.current
+      if (!container) return
+      
+      const rect = container.getBoundingClientRect()
+      const offsetX = e.clientX - rect.left
+      const offsetY = e.clientY - rect.top
+      
+      // Create a Phaser pointer object to pass to the scene
+      const pointer = {
+        x: offsetX,
+        y: offsetY,
+      }
+      
+      // Place block at the dropped position
+      sceneRef.current.placeBlockAtDropPosition(dragData, pointer)
+    } catch (error) {
+      console.error('Failed to process drop:', error)
+    }
+  }
+
   return (
     <div
       ref={containerRef}
       id="phaser-container"
       className="w-full h-full"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       style={{
         overflow: "hidden",
       }}

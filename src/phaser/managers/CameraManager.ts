@@ -94,7 +94,7 @@ export class CameraManager {
     this.scene.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number) => {
       const oldZoom = this.camera.zoom
       const zoomAmount = deltaY > 0 ? -0.1 : 0.1
-      const newZoom = Phaser.Math.Clamp(oldZoom + zoomAmount, 0.5, 2.0)
+      const newZoom = Phaser.Math.Clamp(oldZoom + zoomAmount, 0.7, 7.0)
 
       if (newZoom === oldZoom) return
 

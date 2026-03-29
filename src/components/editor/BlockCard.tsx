@@ -38,6 +38,19 @@ export function BlockCard({
     onClick()
   }
 
+  const handleDragStart = (e: React.DragEvent) => {
+    // Store block data in drag event
+    const dragData = {
+      blockCatalogKey: blockKey,
+      imagePath,
+      id: blockData.id,
+      layer: blockData.layer,
+      rarity: blockData.rarity,
+    }
+    e.dataTransfer.setData('application/json', JSON.stringify(dragData))
+    e.dataTransfer.effectAllowed = 'copy'
+  }
+
   const darkenedBg = backgroundColor ? darkenColor(backgroundColor) : undefined
 
   return (
@@ -47,6 +60,8 @@ export function BlockCard({
         isSelected && "border-primary border-2 shadow-lg"
       )}
       onClick={handleClick}
+      draggable
+      onDragStart={handleDragStart}
       style={darkenedBg ? { backgroundColor: darkenedBg } : undefined}
     >
       <CardContent className="p-3">
