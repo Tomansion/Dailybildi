@@ -47,8 +47,10 @@ COPY docker-entrypoint.sh ./
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
-    mkdir -p /app/data && \
+    adduser -S nextjs -u 1001
+
+# Set up data directory with proper permissions for nextjs user
+RUN mkdir -p /app/data && \
     chown -R nextjs:nodejs /app/data && \
     chmod 755 /app/data && \
     chmod +x /app/docker-entrypoint.sh

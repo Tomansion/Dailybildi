@@ -5,8 +5,17 @@ set -e
 
 echo "Starting DailyBildi..."
 
-# Ensure data directory exists
-mkdir -p /app/data
+# Ensure data directory exists and has proper permissions
+if [ ! -d /app/data ]; then
+  mkdir -p /app/data
+  chmod 755 /app/data
+fi
+
+# Make sure we can write to the directory
+if [ ! -w /app/data ]; then
+  echo "Warning: /app/data is not writable, attempting to fix permissions..."
+  chmod 755 /app/data 2>/dev/null || true
+fi
 
 # Run database migrations
 echo "Running database migrations..."
@@ -21,4 +30,3 @@ fi
 
 echo "Starting Next.js server..."
 npm start
-echo "Everything is up and running!"
