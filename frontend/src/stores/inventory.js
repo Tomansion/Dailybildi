@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '../services/api'
+import { getTileImageUrl } from '../services/urls'
 
 export const useInventoryStore = defineStore('inventory', () => {
   const inventory = ref(null)
@@ -44,7 +45,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           id: block.block_catalog.id,
           layer: block.block_catalog.layer,
           rarity: block.block_catalog.rarity,
-          imagePath: block.block_catalog.image_path
+          imagePath: getTileImageUrl(block.block_catalog.image_path)
         }
       }))
       

@@ -1,18 +1,8 @@
 <template>
   <div class="canvas-container">
-    <div class="canvas-header">
-      <h2>Canvas Editor</h2>
-      <div class="header-buttons">
-        <button @click="goHome" class="header-btn" title="Center view">Home</button>
-        <button @click="toggleInventory" class="header-btn">
-          Inventory ({{ totalBlocks }})
-        </button>
-      </div>
-    </div>
 
     <div class="canvas-content">
       <Inventory
-        v-if="showInventory"
         :blocks="inventoryBlocks"
         :selectedBlockKey="selectedBlockForPlacement?.blockCatalogKey || null"
         @block-select="handleBlockSelect"
@@ -46,7 +36,6 @@ import BlockActionButtons from '../components/BlockActionButtons.vue'
 const route = useRoute()
 const inventoryStore = useInventoryStore()
 
-const showInventory = ref(false)
 const loading = ref(true)
 const error = ref(null)
 const hasSelectedBlock = ref(false)
@@ -73,10 +62,6 @@ const totalBlocks = computed(() => {
   return inventoryBlocks.value.reduce((sum, b) => sum + b.quantity, 0)
 })
 
-const toggleInventory = () => {
-  showInventory.value = !showInventory.value
-}
-
 const goHome = () => {
   if (mainScene) {
     mainScene.goHome()
@@ -100,6 +85,13 @@ const handleBlockSelect = (block) => {
 
   if (mainScene) {
     mainScene.selectBlockForPlacement(selectedBlockForPlacement.value)
+  }
+}
+
+const cancelBlockPlacement = () => {
+  selectedBlockForPlacement.value = null
+  if (mainScene) {
+    mainScene.cancelBlockPlacement()
   }
 }
 
@@ -136,13 +128,6 @@ onMounted(async () => {
     // Fetch placed blocks
     const placedBlocks = await inventoryStore.fetchWorldBlocks()
     
-    const blockImages = inventoryBlocks.value.map(block => ({
-      id: block.blockData.id,
-      layer: block.blockData.layer,
-      rarity: block.blockData.rarity,
-      imagePath: block.blockData.imagePath
-    }))
-
     // Initialize Phaser game
     phaserGame = new PhaserGameWrapper()
     phaserGame.initialize('phaser-container')
@@ -153,15 +138,60 @@ onMounted(async () => {
       if (mainScene) {
         clearInterval(checkScene)
 
+        // Collect all block images to load (from both inventory and placed blocks)
+        // Use a Map to deduplicate by block catalog id
+        const blockImageMap = new Map()
+        
+        // Add inventory blocks
+        inventoryBlocks.value.forEach(block => {
+          blockImageMap.set(block.blockData.id, {
+            id: block.blockData.id,
+            layer: block.blockData.layer,
+            rarity: block.blockData.rarity,
+            imagePath: block.blockData.imagePath
+          })
+        })
+        
+        // Add placed blocks (they may not be in inventory anymore)
+        placedBlocks.forEach(block => {
+          if (!blockImageMap.has(block.blockData.id)) {
+            blockImageMap.set(block.blockData.id, {
+              id: block.blockData.id,
+              layer: block.blockData.layer,
+              rarity: block.blockData.rarity,
+              imagePath: block.blockData.imagePath
+            })
+          }
+        })
+        
+        const allBlockImages = Array.from(blockImageMap.values())
+
         // Setup callbacks
         mainScene.setOnBlockPlaced(async (blockCatalogKey, gridX, gridY) => {
           try {
             await inventoryStore.placeBlock(blockCatalogKey, gridX, gridY)
-            // Reload blocks
+            // Reload inventory and blocks
+            await inventoryStore.fetchInventory()
             const updated = await inventoryStore.fetchWorldBlocks()
             if (updated && mainScene) {
               mainScene.loadBlocks(updated)
+              // Select the last placed block (it's the one at the end of the updated list)
+              if (updated.length > 0) {
+                const lastBlock = updated[updated.length - 1]
+                mainScene.selectBlockByKey(lastBlock.blockKey)
+                hasSelectedBlock.value = true
+              }
             }
+            // Check if the block type is still in inventory
+            const blockStillInInventory = inventoryBlocks.value.some(
+              block => block.blockCatalogKey === blockCatalogKey && block.quantity > 0
+            )
+            
+            // Only cancel placement if the block is no longer in inventory (was the last one)
+            if (!blockStillInInventory) {
+              cancelBlockPlacement()
+            }
+            // Otherwise keep it selected for placing more of the same type
           } catch (err) {
             console.error('Failed to place block:', err)
           }
@@ -171,10 +201,16 @@ onMounted(async () => {
           hasSelectedBlock.value = true
         })
 
+        mainScene.setOnBlockDeselected(() => {
+          hasSelectedBlock.value = false
+        })
+
         mainScene.setOnBlockUpdated(async (blockKey, updates) => {
           try {
             if (updates.removed) {
               await inventoryStore.removeBlock(blockKey)
+              // Reload inventory when block is removed
+              await inventoryStore.fetchInventory()
             } else {
               await inventoryStore.updateBlock(blockKey, updates)
             }
@@ -184,8 +220,8 @@ onMounted(async () => {
         })
 
         // Load images first, then blocks
-        if (blockImages.length > 0) {
-          mainScene.loadBlockImages(blockImages, () => {
+        if (allBlockImages.length > 0) {
+          mainScene.loadBlockImages(allBlockImages, () => {
             mainScene.loadBlocks(placedBlocks)
           })
         } else {
@@ -241,11 +277,6 @@ onBeforeUnmount(() => {
 .canvas-header h2 {
   margin: 0;
   color: var(--text-primary);
-}
-
-.header-buttons {
-  display: flex;
-  gap: 0.5rem;
 }
 
 .header-btn {

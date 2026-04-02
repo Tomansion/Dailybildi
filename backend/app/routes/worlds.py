@@ -57,6 +57,19 @@ def place_block(
         if not inventory:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory not found")
 
+        # Verify the block exists in inventory with quantity > 0
+        block_in_inventory = None
+        for inv_block in inventory.blocks:
+            if inv_block.block_catalog_id == request.block_catalog_id and inv_block.quantity > 0:
+                block_in_inventory = inv_block
+                break
+        
+        if not block_in_inventory:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Block not found in inventory or out of stock"
+            )
+
         # Place the block
         placed_block = WorldService.place_block(
             db,
@@ -67,7 +80,8 @@ def place_block(
             request.z_order,
             request.rotation,
             request.flip_x,
-            request.flip_y
+            request.flip_y,
+            user_id=user_id
         )
 
         return placed_block

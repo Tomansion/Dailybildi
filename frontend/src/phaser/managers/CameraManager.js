@@ -76,8 +76,13 @@ export class CameraManager {
         // Scale by zoom for 1:1 feeling regardless of zoom level
         const deltaX = (this.dragStartX - pointer.x) / this.camera.zoom
         const deltaY = (this.dragStartY - pointer.y) / this.camera.zoom
+
         this.camera.scrollX += deltaX
         this.camera.scrollY += deltaY
+
+        // Update drag start for next frame to get smooth incremental movement
+        this.dragStartX = pointer.x
+        this.dragStartY = pointer.y
       }
     })
 

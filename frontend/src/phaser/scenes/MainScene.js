@@ -24,6 +24,7 @@ export class MainScene extends Phaser.Scene {
     // Callbacks to communicate with Vue
     this.onBlockPlacedCallback = null
     this.onBlockSelectedCallback = null
+    this.onBlockDeselectedCallback = null
     this.onBlockUpdatedCallback = null
   }
 
@@ -90,8 +91,19 @@ export class MainScene extends Phaser.Scene {
       const img = this.add.image(0, 0, `world_${imgConfig.index}`)
       img.setOrigin(0.5, 0.5)
       img.setScale(scale)
-      img.setScrollFactor(0.5 + (1 - 0.5) * (imgConfig.distance / 1000))
-      img.setDepth(-1000 + imgConfig.distance)
+
+      // Depth calculation:
+      // Negative distance (foreground): above blocks (5000 + range)
+      // Distance 0 to 1 (background): below blocks (-900 to -1000)
+      let depth
+      if (imgConfig.distance < 0) {
+        // Negative distance = foreground, more negative = higher depth
+        depth = 5000 - imgConfig.distance * 1000
+      } else {
+        // Positive distance = background
+        depth = -900 - imgConfig.distance * 100
+      }
+      img.setDepth(depth)
 
       this.parallaxLayers.push({
         image: img,
@@ -113,6 +125,9 @@ export class MainScene extends Phaser.Scene {
       this.worldBounds.height
     )
 
+    // Center camera on world origin (0, 0) at startup
+    this.cameraManager.centerOn(0, 0)
+
     this.setupInputHandlers()
     this.cameraManager.setupInput()
   }
@@ -125,12 +140,20 @@ export class MainScene extends Phaser.Scene {
   }
 
   setupInputHandlers() {
+    // Handle Escape key - deselect block and cancel placement
+    this.input.keyboard.on('keydown-ESC', () => {
+      this.deselectBlock()
+      this.cancelBlockPlacement()
+    })
+
     // Handle block drag
     this.input.on('drag', (pointer, gameObject) => {
       if (gameObject instanceof Block) {
         this.cameraManager.setBlockDragInProgress(true)
-        const gridPos = GridManager.pixelsToGrid(pointer.x, pointer.y)
-        gameObject.updatePosition(gridPos.gridX, gridPos.gridY)
+        // Convert pointer to world coordinates for 1:1 dragging
+        const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+        const snapped = GridManager.snapToGrid(worldPoint.x, worldPoint.y)
+        gameObject.setPosition(snapped.x, snapped.y)
       }
     })
 
@@ -156,32 +179,46 @@ export class MainScene extends Phaser.Scene {
       }
     })
 
-    // Handle block click
-    this.input.on('gameobjectdown', (pointer, gameObject) => {
-      if (gameObject instanceof Block) {
-        this.selectBlock(gameObject)
-      }
-    })
-
-    // Handle left click on empty space - place new block if one is selected
+    // Handle left click on empty space - place new block if one is selected, or deselect current block
+    // This is checked BEFORE gameobjectdown to prioritize block placement over block selection
     this.input.on('pointerdown', (pointer) => {
       if (pointer.button === 2) {
         // Right click
         return
       }
 
-      // Only place block if user has selected one from inventory
+      // If we're in placement mode, try to place the block
       if (this.selectedBlockData) {
         this.placeBlockAtPointer(pointer)
+        return
+      }
+
+      // Check if we clicked on a game object
+      const hitArea = this.input.hitTestPointer(pointer)
+      const clickedOnBlock = hitArea.some(obj => obj instanceof Block)
+      
+      if (clickedOnBlock) {
+        // Block click will be handled by gameobjectdown
+        return
+      }
+
+      // Click on empty space with no block selected - deselect the currently selected block
+      this.deselectBlock()
+    })
+
+    // Handle block click - only if not in placement mode
+    this.input.on('gameobjectdown', (pointer, gameObject) => {
+      if (gameObject instanceof Block && !this.selectedBlockData) {
+        this.selectBlock(gameObject)
       }
     })
 
     // Update phantom block position on mouse move
     this.input.on('pointermove', (pointer) => {
       if (this.phantomBlock) {
-        const gridPos = GridManager.pixelsToGrid(pointer.x, pointer.y)
-        const pixelPos = GridManager.gridToPixels(gridPos.gridX, gridPos.gridY)
-        this.phantomBlock.setPosition(pixelPos.x, pixelPos.y)
+        const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+        const snapped = GridManager.snapToGrid(worldPoint.x, worldPoint.y)
+        this.phantomBlock.setPosition(snapped.x, snapped.y)
       }
     })
   }
@@ -198,12 +235,17 @@ export class MainScene extends Phaser.Scene {
 
     const camera = this.cameras.main
 
+    // Use camera world view center for proper parallax alignment
+    const cameraCenterX = camera.worldView.centerX
+    const cameraCenterY = camera.worldView.centerY
+
     for (const layer of this.parallaxLayers) {
-      // This is already handled by scrollFactor
-      // Just update position based on camera
+      // distance 0 = stays fixed in world coords (no offset)
+      // distance 1 = stays fixed on screen (follows camera center)
+      // Position the layer based on camera center and distance factor
       layer.image.setPosition(
-        camera.centerX,
-        camera.centerY
+        cameraCenterX * layer.distance,
+        cameraCenterY * layer.distance
       )
     }
   }
@@ -269,33 +311,35 @@ export class MainScene extends Phaser.Scene {
   placeBlockAtPointer(pointer) {
     if (!this.selectedBlockData) return
 
-    const gridPos = GridManager.pixelsToGrid(pointer.x, pointer.y)
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+    const grid = GridManager.pixelsToGrid(worldPoint.x, worldPoint.y)
 
-    if (!GridManager.isWithinBounds(gridPos.gridX, gridPos.gridY)) {
+    if (!GridManager.isWithinBounds(grid.gridX, grid.gridY)) {
       return
     }
 
     if (this.onBlockPlacedCallback) {
       this.onBlockPlacedCallback(
         this.selectedBlockData.blockCatalogKey,
-        gridPos.gridX,
-        gridPos.gridY
+        grid.gridX,
+        grid.gridY
       )
     }
   }
 
   placeBlockAtDropPosition(blockData, pointer) {
-    const gridPos = GridManager.pixelsToGrid(pointer.x, pointer.y)
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+    const grid = GridManager.pixelsToGrid(worldPoint.x, worldPoint.y)
 
-    if (!GridManager.isWithinBounds(gridPos.gridX, gridPos.gridY)) {
+    if (!GridManager.isWithinBounds(grid.gridX, grid.gridY)) {
       return
     }
 
     if (this.onBlockPlacedCallback) {
       this.onBlockPlacedCallback(
         blockData.blockCatalogKey,
-        gridPos.gridX,
-        gridPos.gridY
+        grid.gridX,
+        grid.gridY
       )
     }
   }
@@ -313,10 +357,21 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  selectBlockByKey(blockKey) {
+    const block = this.blocks.get(blockKey)
+    if (block) {
+      this.selectBlock(block)
+    }
+  }
+
   deselectBlock() {
     if (this.selectedBlock) {
       this.selectedBlock.clearTint()
       this.selectedBlock = null
+      
+      if (this.onBlockDeselectedCallback) {
+        this.onBlockDeselectedCallback()
+      }
     }
   }
 
@@ -386,6 +441,10 @@ export class MainScene extends Phaser.Scene {
 
   setOnBlockSelected(callback) {
     this.onBlockSelectedCallback = callback
+  }
+
+  setOnBlockDeselected(callback) {
+    this.onBlockDeselectedCallback = callback
   }
 
   setOnBlockUpdated(callback) {

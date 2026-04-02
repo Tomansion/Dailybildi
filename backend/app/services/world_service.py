@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from app.models import World, PlacedBlock, BlockCatalog, User
+from app.services.inventory_service import InventoryService
 from app.config import get_settings
 
 settings = get_settings()
@@ -47,7 +48,8 @@ class WorldService:
         z_order: int,
         rotation: int = 0,
         flip_x: bool = False,
-        flip_y: bool = False
+        flip_y: bool = False,
+        user_id: str = None
     ) -> PlacedBlock:
         """Place a block on the world"""
         # Verify block exists
@@ -69,6 +71,15 @@ class WorldService:
             z_order=z_order
         )
         db.add(placed_block)
+
+        # Remove block from inventory if user_id is provided
+        if user_id:
+            InventoryService.remove_block_from_inventory(
+                db,
+                user_id,
+                block_catalog_id,
+                quantity=1
+            )
 
         # Update world timestamp
         world = WorldService.get_world_by_id(db, world_id)
