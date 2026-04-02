@@ -12,6 +12,7 @@ export class MainScene extends Phaser.Scene {
     this.selectedBlock = null
     this.phantomBlock = null
     this.selectedBlockData = null
+    this.readOnly = false
     this.universeConfig = {
       backgroundColor: '#000000',
       worldImageScale: 1,
@@ -140,6 +141,11 @@ export class MainScene extends Phaser.Scene {
   }
 
   setupInputHandlers() {
+    // In read-only mode, only setup camera controls (via CameraManager)
+    if (this.readOnly) {
+      return
+    }
+
     // Handle Escape key - deselect block and cancel placement
     this.input.keyboard.on('keydown-ESC', () => {
       this.deselectBlock()
@@ -252,6 +258,10 @@ export class MainScene extends Phaser.Scene {
 
   // Public methods called from Vue
   loadBlocks(placedBlocks) {
+    // Destroy old blocks before clearing the map
+    for (const block of this.blocks.values()) {
+      block.destroy()
+    }
     this.blocks.clear()
 
     for (const blockData of placedBlocks) {
@@ -432,6 +442,10 @@ export class MainScene extends Phaser.Scene {
     if (this.cameraManager) {
       this.cameraManager.goHome()
     }
+  }
+
+  setReadOnly(isReadOnly = true) {
+    this.readOnly = isReadOnly
   }
 
   // Set callbacks

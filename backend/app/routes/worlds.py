@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.schemas import WorldResponse, PlacedBlockRequest, PlacedBlockUpdateRequest, PlacedBlockResponse
+from app.schemas import WorldResponse, CommunityWorldResponse, PlacedBlockRequest, PlacedBlockUpdateRequest, PlacedBlockResponse
 from app.services.world_service import WorldService
 from app.services.inventory_service import InventoryService
 from app.utils.jwt import verify_token
@@ -93,7 +93,7 @@ def place_block(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/{world_id}", response_model=WorldResponse)
+@router.get("/{world_id}", response_model=CommunityWorldResponse)
 def get_world(world_id: str, db: Session = Depends(get_db)):
     """Get a world by ID (read-only, public)"""
     try:

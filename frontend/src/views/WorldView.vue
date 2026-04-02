@@ -4,74 +4,22 @@
 
     <div v-if="loading" class="loading">Loading world...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-else-if="!world" class="error">World not found</div>
 
     <div v-else class="world-detail">
-      <div class="world-header">
-        <h1>{{ world.user.username }}'s World</h1>
-        <div class="world-actions">
-          <button @click="toggleLike" :class="{ liked: isLiked }" class="like-btn">
-            {{ isLiked ? '❤️' : '🤍' }} {{ world.like_count }}
-          </button>
-        </div>
-      </div>
-
-      <div class="world-preview">
-        <div class="preview-placeholder">
-          <p>World created: {{ formatDate(world.created_at) }}</p>
-          <p>Last updated: {{ formatDate(world.updated_at) }}</p>
-          <p>Total blocks: {{ world.placed_blocks.length }}</p>
-        </div>
-      </div>
-
-      <div class="world-info">
-        <div class="info-card card">
-          <h3>World Info</h3>
-          <ul>
-            <li>
-              <span class="label">Creator:</span>
-              <span>{{ world.user.username }}</span>
-            </li>
-            <li>
-              <span class="label">Created:</span>
-              <span>{{ formatDate(world.created_at) }}</span>
-            </li>
-            <li>
-              <span class="label">Last Updated:</span>
-              <span>{{ formatDate(world.updated_at) }}</span>
-            </li>
-            <li>
-              <span class="label">Placed Blocks:</span>
-              <span>{{ world.placed_blocks.length }}</span>
-            </li>
-            <li>
-              <span class="label">Likes:</span>
-              <span>{{ world.like_count }}</span>
-            </li>
-          </ul>
-        </div>
-
-        <div v-if="world.placed_blocks.length > 0" class="blocks-info card">
-          <h3>Placed Blocks</h3>
-          <div class="blocks-list">
-            <div
-              v-for="(block, index) in world.placed_blocks"
-              :key="index"
-              class="block-item"
-            >
-              <span class="block-name">{{ block.block_catalog.block_id }}</span>
-              <span class="block-position">@ ({{ block.grid_x }}, {{ block.grid_y }})</span>
-            </div>
-          </div>
-        </div>
+      <div class="world-canvas-container">
+        <div id="phaser-container-view" class="phaser-container"></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { getTileImageUrl } from '../services/urls'
+import { PhaserGameWrapper } from '../phaser/PhaserGame'
 import api from '../services/api'
 
 const router = useRouter()
@@ -82,6 +30,9 @@ const world = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const isLiked = ref(false)
+
+let phaserGame = null
+let mainScene = null
 
 const goBack = () => {
   router.back()
@@ -100,12 +51,86 @@ const fetchWorld = async () => {
       const likesResponse = await api.get('/likes')
       isLiked.value = likesResponse.data.liked_world_ids.includes(route.params.worldId)
     }
+
+    // Initialize Phaser after world data is loaded
+    initializePhaserGame()
   } catch (err) {
     error.value = 'Failed to load world'
     console.error(err)
   } finally {
     loading.value = false
   }
+}
+
+const initializePhaserGame = () => {
+  if (!world.value) return
+
+  // Initialize Phaser game
+  phaserGame = new PhaserGameWrapper()
+  phaserGame.initialize('phaser-container-view')
+
+  // Wait for scene to be ready
+  const checkScene = setInterval(() => {
+    mainScene = phaserGame.getMainScene()
+    if (mainScene) {
+      clearInterval(checkScene)
+
+      // Set read-only mode - disables block manipulation
+      mainScene.setReadOnly(true)
+
+      // Collect all block images to load from placed blocks
+      const blockImageMap = new Map()
+      
+      world.value.placed_blocks.forEach(block => {
+        if (!blockImageMap.has(block.block_catalog.id)) {
+          blockImageMap.set(block.block_catalog.id, {
+            id: block.block_catalog.id,
+            layer: block.block_catalog.layer,
+            rarity: block.block_catalog.rarity,
+            imagePath: getTileImageUrl(block.block_catalog.image_path)
+          })
+        }
+      })
+      
+      const allBlockImages = Array.from(blockImageMap.values())
+
+      // Transform placed blocks to Phaser format
+      const placedBlocks = world.value.placed_blocks.map(block => ({
+        _key: block.id,
+        blockKey: block.id,
+        blockCatalogKey: block.block_catalog.block_id,
+        gridX: block.grid_x,
+        gridY: block.grid_y,
+        rotation: block.rotation || 0,
+        flipX: block.flip_x || false,
+        flipY: block.flip_y || false,
+        zOrder: block.z_order || 0,
+        blockData: {
+          id: block.block_catalog.id,
+          layer: block.block_catalog.layer,
+          rarity: block.block_catalog.rarity,
+          imagePath: getTileImageUrl(block.block_catalog.image_path)
+        }
+      }))
+
+      // Load images first, then blocks
+      if (allBlockImages.length > 0) {
+        mainScene.loadBlockImages(allBlockImages, () => {
+          mainScene.loadBlocks(placedBlocks)
+        })
+      } else {
+        mainScene.loadBlocks(placedBlocks)
+      }
+    }
+  }, 100)
+
+  // Timeout after 10 seconds
+  setTimeout(() => {
+    clearInterval(checkScene)
+    if (!mainScene) {
+      error.value = 'Failed to initialize game'
+    }
+  }, 10000)
 }
 
 const toggleLike = async () => {
@@ -132,12 +157,21 @@ const formatDate = (dateString) => {
 onMounted(() => {
   fetchWorld()
 })
+
+onBeforeUnmount(() => {
+  if (phaserGame) {
+    phaserGame.destroy()
+    phaserGame = null
+    mainScene = null
+  }
+})
 </script>
 
 <style scoped>
 .world-view-container {
-  max-width: 1000px;
+  max-width: 100%;
   margin: 0 auto;
+  padding: 1rem;
 }
 
 .back-btn {
@@ -199,24 +233,10 @@ onMounted(() => {
   background-color: rgba(239, 68, 68, 0.1);
 }
 
-.world-preview {
+.phaser-container {
   width: 100%;
-  aspect-ratio: 16 / 9;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-.preview-placeholder {
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.preview-placeholder p {
-  margin: 0.5rem 0;
+  height: 100%;
+  position: relative;
 }
 
 .world-info {
