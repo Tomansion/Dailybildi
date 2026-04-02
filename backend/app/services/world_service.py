@@ -163,20 +163,3 @@ class WorldService:
         worlds = query.offset(skip).limit(limit).all()
 
         return worlds, total
-
-    @staticmethod
-    def get_world_with_blocks(db: Session, world_id: str) -> dict:
-        """Get world details with all placed blocks"""
-        world = WorldService.get_world_by_id(db, world_id)
-        if not world:
-            return None
-
-        return {
-            "id": world.id,
-            "user_id": world.user_id,
-            "universe_id": world.universe_id,
-            "created_at": world.created_at,
-            "updated_at": world.updated_at,
-            "like_count": world.like_count,
-            "placed_blocks": world.placed_blocks
-        }

@@ -1,17 +1,8 @@
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, UniqueConstraint, Table
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db import Base
 import uuid
-
-
-# Association table for many-to-many relationship between DailyBlockSelection and BlockCatalog
-daily_block_selection_association = Table(
-    'daily_block_selection_association',
-    Base.metadata,
-    Column('daily_selection_id', String, ForeignKey('daily_block_selection.id')),
-    Column('block_catalog_id', String, ForeignKey('block_catalog.id'))
-)
 
 
 class User(Base):
@@ -46,26 +37,6 @@ class BlockCatalog(Base):
     # Relationships
     inventory_blocks = relationship("InventoryBlock", back_populates="block_catalog")
     placed_blocks = relationship("PlacedBlock", back_populates="block_catalog")
-    daily_selections = relationship(
-        "DailyBlockSelection",
-        secondary=daily_block_selection_association,
-        back_populates="selected_blocks"
-    )
-
-
-class DailyBlockSelection(Base):
-    __tablename__ = "daily_block_selection"
-
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    date = Column(String, unique=True, nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    selected_blocks = relationship(
-        "BlockCatalog",
-        secondary=daily_block_selection_association,
-        back_populates="daily_selections"
-    )
 
 
 class UserInventory(Base):
@@ -74,6 +45,8 @@ class UserInventory(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    initial_blocks_received = Column(Boolean, default=False)
+    last_blocks_provided_date = Column(String, nullable=True)  # Format: YYYY-MM-DD
 
     # Relationships
     user = relationship("User", back_populates="inventory")

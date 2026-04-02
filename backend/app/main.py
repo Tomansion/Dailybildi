@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
+from pathlib import Path
 
 from app.config import get_settings
 from app.db import init_db
 from app.scheduler import start_scheduler, stop_scheduler
-from app.routes import auth, blocks, inventory, worlds, community, likes
+from app.routes import auth, blocks, inventory, worlds, community, likes, universes
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -51,6 +53,18 @@ app.include_router(inventory.router)
 app.include_router(worlds.router)
 app.include_router(community.router)
 app.include_router(likes.router)
+app.include_router(universes.router)
+
+# Mount static files (serve public folder at /univers, /world, etc.)
+public_path = Path(__file__).parent.parent.parent / "public"
+if public_path.exists():
+    app.mount("/univers", StaticFiles(directory=str(public_path / "univers")), name="univers")
+    
+    # Also mount default universe tiles directly at /tiles for convenience
+    # This allows direct access like /tiles/tile_0_0_1.png for the default ink_castle universe
+    default_tiles_path = public_path / "univers" / "ink_castle" / "tiles"
+    if default_tiles_path.exists():
+        app.mount("/tiles", StaticFiles(directory=str(default_tiles_path)), name="tiles")
 
 
 @app.get("/")

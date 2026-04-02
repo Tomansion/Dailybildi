@@ -42,11 +42,14 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useInventoryStore } from '../stores/inventory'
 import { useRouter } from 'vue-router'
 import api from '../services/api'
+import { getTileImageUrl } from '../services/urls'
 import PhaserGame from '../utils/PhaserGame'
 
+const route = useRoute()
 const router = useRouter()
 const inventoryStore = useInventoryStore()
 
@@ -54,6 +57,7 @@ const showInventory = ref(false)
 const selectedBlock = ref(null)
 const loading = ref(true)
 const error = ref(null)
+const worldId = ref(route.query.world_id || null)
 let phaserGame = null
 
 const inventoryBlocks = computed(() => inventoryStore.inventory?.blocks || [])
@@ -74,8 +78,9 @@ const selectBlock = (block) => {
 }
 
 const getBlockImagePath = (blockCatalog) => {
-  // Construct image path from block catalog data
-  return blockCatalog.image_path
+  // Image is served from backend at /univers/{universe}/tiles/{image}
+  // blockCatalog.image_path is like: univers/ink_castle/tiles/tile_X_Y_Z.png
+  return getTileImageUrl(blockCatalog.image_path)
 }
 
 onMounted(async () => {

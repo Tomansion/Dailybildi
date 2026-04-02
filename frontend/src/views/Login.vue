@@ -67,7 +67,7 @@ const handleLogin = async () => {
     })
 
     authStore.setAuth(response.data.access_token, response.data.user)
-    router.push('/canvas')
+    router.push('/')
   } catch (err) {
     error.value = err.response?.data?.detail || 'Login failed'
   } finally {

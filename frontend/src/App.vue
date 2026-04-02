@@ -11,6 +11,9 @@
             <router-link to="/register" class="nav-link">Register</router-link>
           </li>
           <li v-if="isAuthenticated" class="nav-item">
+            <router-link to="/" class="nav-link">Universes</router-link>
+          </li>
+          <li v-if="isAuthenticated" class="nav-item">
             <router-link to="/canvas" class="nav-link">Canvas</router-link>
           </li>
           <li v-if="isAuthenticated" class="nav-item">

@@ -1,13 +1,15 @@
 import os
 from functools import lru_cache
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
 class Settings:
-    # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./dailybildi.db")
+    # Database - use absolute path to project root
+    _PROJECT_ROOT = Path(__file__).parent.parent.parent
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_PROJECT_ROOT}/dailybildi.db")
     
     # JWT Configuration
     JWT_SECRET: str = os.getenv("JWT_SECRET", "your-secret-key-change-this-in-production")

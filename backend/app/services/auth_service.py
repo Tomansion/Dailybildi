@@ -1,16 +1,16 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.models import User, UserInventory
+from app.models import User
 from app.utils.security import hash_password, verify_password
 from app.utils.jwt import create_access_token
 
 
 class AuthService:
-    """Authentication service for user registration and login"""
+    """Authentication service for user registration and login (auth only)"""
 
     @staticmethod
     def register_user(db: Session, username: str, password: str) -> dict:
-        """Register a new user and create their inventory and initial world"""
+        """Register a new user"""
         # Check if user already exists
         existing_user = db.query(User).filter(User.username == username).first()
         if existing_user:
@@ -24,22 +24,6 @@ class AuthService:
             received_initial_blocks=False
         )
         db.add(new_user)
-        db.flush()
-
-        # Create inventory for user
-        from app.services.inventory_service import InventoryService
-        InventoryService.initialize_inventory(db, new_user.id)
-
-        # Create initial world for user
-        from app.services.world_service import WorldService
-        from app.config import get_settings
-        settings = get_settings()
-        WorldService.create_world(db, new_user.id, settings.UNIVERSE_ID)
-
-        # Give initial blocks
-        from app.services.inventory_service import InventoryService
-        InventoryService.give_initial_blocks(db, new_user.id)
-
         db.commit()
         db.refresh(new_user)
 

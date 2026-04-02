@@ -4,8 +4,9 @@ import { useAuthStore } from './stores/auth'
 const routes = [
   {
     path: '/',
-    name: 'Home',
-    component: () => import('./views/Home.vue')
+    name: 'Universes',
+    component: () => import('./views/Universes.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -34,6 +35,11 @@ const routes = [
     path: '/community/:worldId',
     name: 'WorldView',
     component: () => import('./views/WorldView.vue')
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('./views/NotFound.vue')
   }
 ]
 
@@ -48,7 +54,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
   } else if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
-    next('/canvas')
+    next('/')
   } else {
     next()
   }
