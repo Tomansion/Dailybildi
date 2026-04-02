@@ -1,38 +1,32 @@
 <template>
   <div class="canvas-container">
     <div class="canvas-header">
-      <h2>Your Canvas</h2>
-      <button @click="goToInventory" class="inventory-btn">Inventory ({{ blocksCount }})</button>
+      <h2>Canvas Editor</h2>
+      <div class="header-buttons">
+        <button @click="goHome" class="header-btn" title="Center view">Home</button>
+        <button @click="toggleInventory" class="header-btn">
+          Inventory ({{ totalBlocks }})
+        </button>
+      </div>
     </div>
 
-    <div id="phaser-container" class="phaser-container"></div>
+    <div class="canvas-content">
+      <Inventory
+        v-if="showInventory"
+        :blocks="inventoryBlocks"
+        :selectedBlockKey="selectedBlockForPlacement?.blockCatalogKey || null"
+        @block-select="handleBlockSelect"
+      />
 
-    <div v-if="showInventory" class="inventory-panel">
-      <div class="inventory-header">
-        <h3>Inventory</h3>
-        <button @click="showInventory = false" class="close-btn">✕</button>
-      </div>
-      <div class="blocks-grid">
-        <div
-          v-for="block in inventoryBlocks"
-          :key="block.id"
-          class="inventory-block"
-          @click="selectBlock(block)"
-          :class="{ selected: selectedBlock?.id === block.id }"
-        >
-          <div class="block-image">
-            <img :src="getBlockImagePath(block.block_catalog)" :alt="block.block_catalog.block_id" />
-          </div>
-          <div class="block-info">
-            <p class="block-name">{{ block.block_catalog.block_id }}</p>
-            <p class="block-quantity">{{ block.quantity }}</p>
-          </div>
-        </div>
-      </div>
-      <div v-if="selectedBlock" class="block-actions">
-        <p>Selected: {{ selectedBlock.block_catalog.block_id }}</p>
-        <p>Quantity: {{ selectedBlock.quantity }}</p>
-      </div>
+      <div id="phaser-container" class="phaser-container"></div>
+
+      <BlockActionButtons
+        :hasSelectedBlock="hasSelectedBlock"
+        @rotate="handleRotate"
+        @flip-horizontal="handleFlipHorizontal"
+        @flip-vertical="handleFlipVertical"
+        @discard="handleDiscard"
+      />
     </div>
 
     <div v-if="loading" class="loading">Loading...</div>
@@ -41,46 +35,97 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useInventoryStore } from '../stores/inventory'
-import { useRouter } from 'vue-router'
-import api from '../services/api'
 import { getTileImageUrl } from '../services/urls'
-import PhaserGame from '../utils/PhaserGame'
+import { PhaserGameWrapper } from '../phaser/PhaserGame'
+import Inventory from '../components/Inventory.vue'
+import BlockActionButtons from '../components/BlockActionButtons.vue'
 
 const route = useRoute()
-const router = useRouter()
 const inventoryStore = useInventoryStore()
 
 const showInventory = ref(false)
-const selectedBlock = ref(null)
 const loading = ref(true)
 const error = ref(null)
-const worldId = ref(route.query.world_id || null)
-let phaserGame = null
+const hasSelectedBlock = ref(false)
+const selectedBlockForPlacement = ref(null)
 
-const inventoryBlocks = computed(() => inventoryStore.inventory?.blocks || [])
-const blocksCount = computed(() => {
-  return inventoryBlocks.value.reduce((sum, block) => sum + block.quantity, 0)
+let phaserGame = null
+let mainScene = null
+
+const inventoryBlocks = computed(() => {
+  const blocks = inventoryStore.inventory?.blocks || []
+  return blocks.map(block => ({
+    blockCatalogKey: block.block_catalog.block_id,
+    quantity: block.quantity,
+    blockData: {
+      id: block.block_catalog.id,
+      layer: block.block_catalog.layer,
+      rarity: block.block_catalog.rarity,
+      imagePath: getTileImageUrl(block.block_catalog.image_path)
+    }
+  }))
 })
 
-const goToInventory = () => {
+const totalBlocks = computed(() => {
+  return inventoryBlocks.value.reduce((sum, b) => sum + b.quantity, 0)
+})
+
+const toggleInventory = () => {
   showInventory.value = !showInventory.value
 }
 
-const selectBlock = (block) => {
-  selectedBlock.value = block
-  // Notify Phaser game of selected block
-  if (phaserGame && phaserGame.scene) {
-    phaserGame.scene.events.emit('select_block', block)
+const goHome = () => {
+  if (mainScene) {
+    mainScene.goHome()
   }
 }
 
-const getBlockImagePath = (blockCatalog) => {
-  // Image is served from backend at /univers/{universe}/tiles/{image}
-  // blockCatalog.image_path is like: univers/ink_castle/tiles/tile_X_Y_Z.png
-  return getTileImageUrl(blockCatalog.image_path)
+const handleBlockSelect = (block) => {
+  // Toggle - if clicking the same block again, deselect
+  if (selectedBlockForPlacement.value?.blockCatalogKey === block.blockCatalogKey) {
+    cancelBlockPlacement()
+    return
+  }
+
+  selectedBlockForPlacement.value = {
+    imagePath: block.blockData.imagePath,
+    blockCatalogKey: block.blockCatalogKey,
+    id: block.blockData.id,
+    layer: block.blockData.layer,
+    rarity: block.blockData.rarity
+  }
+
+  if (mainScene) {
+    mainScene.selectBlockForPlacement(selectedBlockForPlacement.value)
+  }
+}
+
+const handleRotate = () => {
+  if (mainScene) {
+    mainScene.rotateSelectedBlock()
+  }
+}
+
+const handleFlipHorizontal = () => {
+  if (mainScene) {
+    mainScene.flipSelectedBlockHorizontal()
+  }
+}
+
+const handleFlipVertical = () => {
+  if (mainScene) {
+    mainScene.flipSelectedBlockVertical()
+  }
+}
+
+const handleDiscard = () => {
+  if (mainScene) {
+    mainScene.removeSelectedBlock()
+    hasSelectedBlock.value = false
+  }
 }
 
 onMounted(async () => {
@@ -88,15 +133,89 @@ onMounted(async () => {
     // Fetch user's inventory
     await inventoryStore.fetchInventory()
 
-    // Initialize Phaser game
-    const container = document.getElementById('phaser-container')
-    phaserGame = new PhaserGame(container)
+    // Fetch placed blocks
+    const placedBlocks = await inventoryStore.fetchWorldBlocks()
+    
+    const blockImages = inventoryBlocks.value.map(block => ({
+      id: block.blockData.id,
+      layer: block.blockData.layer,
+      rarity: block.blockData.rarity,
+      imagePath: block.blockData.imagePath
+    }))
 
-    loading.value = false
+    // Initialize Phaser game
+    phaserGame = new PhaserGameWrapper()
+    phaserGame.initialize('phaser-container')
+
+    // Wait for scene to be ready
+    const checkScene = setInterval(() => {
+      mainScene = phaserGame.getMainScene()
+      if (mainScene) {
+        clearInterval(checkScene)
+
+        // Setup callbacks
+        mainScene.setOnBlockPlaced(async (blockCatalogKey, gridX, gridY) => {
+          try {
+            await inventoryStore.placeBlock(blockCatalogKey, gridX, gridY)
+            // Reload blocks
+            const updated = await inventoryStore.fetchWorldBlocks()
+            if (updated && mainScene) {
+              mainScene.loadBlocks(updated)
+            }
+          } catch (err) {
+            console.error('Failed to place block:', err)
+          }
+        })
+
+        mainScene.setOnBlockSelected((blockKey) => {
+          hasSelectedBlock.value = true
+        })
+
+        mainScene.setOnBlockUpdated(async (blockKey, updates) => {
+          try {
+            if (updates.removed) {
+              await inventoryStore.removeBlock(blockKey)
+            } else {
+              await inventoryStore.updateBlock(blockKey, updates)
+            }
+          } catch (err) {
+            console.error('Failed to update block:', err)
+          }
+        })
+
+        // Load images first, then blocks
+        if (blockImages.length > 0) {
+          mainScene.loadBlockImages(blockImages, () => {
+            mainScene.loadBlocks(placedBlocks)
+          })
+        } else {
+          mainScene.loadBlocks(placedBlocks)
+        }
+
+        loading.value = false
+      }
+    }, 100)
+
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      clearInterval(checkScene)
+      if (!mainScene) {
+        error.value = 'Failed to initialize game'
+        loading.value = false
+      }
+    }, 10000)
   } catch (err) {
-    error.value = 'Failed to load canvas'
+    error.value = 'Failed to load canvas: ' + (err.message || 'Unknown error')
     console.error(err)
     loading.value = false
+  }
+})
+
+onBeforeUnmount(() => {
+  if (phaserGame) {
+    phaserGame.destroy()
+    phaserGame = null
+    mainScene = null
   }
 })
 </script>
@@ -107,6 +226,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   background-color: var(--background);
+  overflow: hidden;
 }
 
 .canvas-header {
@@ -123,7 +243,12 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
-.inventory-btn {
+.header-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.header-btn {
   background-color: var(--primary);
   color: white;
   padding: 0.5rem 1rem;
@@ -131,127 +256,24 @@ onMounted(async () => {
   border-radius: 0.375rem;
   cursor: pointer;
   font-weight: 500;
+  transition: background-color 0.2s;
 }
 
-.inventory-btn:hover {
+.header-btn:hover {
   background-color: var(--primary-dark);
+}
+
+.canvas-content {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
 }
 
 .phaser-container {
   flex: 1;
   position: relative;
   overflow: hidden;
-}
-
-.inventory-panel {
-  position: fixed;
-  right: 0;
-  top: 0;
-  width: 350px;
-  height: 100vh;
-  background-color: var(--surface);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
-  z-index: 100;
-}
-
-.inventory-header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.inventory-header h3 {
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0;
-}
-
-.blocks-grid {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.inventory-block {
-  background-color: var(--background);
-  border: 2px solid transparent;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.inventory-block:hover {
-  border-color: var(--primary);
-  transform: scale(1.05);
-}
-
-.inventory-block.selected {
-  border-color: var(--primary);
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-.block-image {
-  width: 100%;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: 0.375rem;
-  margin-bottom: 0.5rem;
-}
-
-.block-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background-color: var(--border);
-}
-
-.block-info {
-  text-align: center;
-  font-size: 0.875rem;
-}
-
-.block-name {
-  margin: 0;
-  color: var(--text-primary);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.block-quantity {
-  margin: 0.25rem 0 0 0;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.block-actions {
-  padding: 1rem;
-  border-top: 1px solid var(--border);
-  background-color: var(--background);
-}
-
-.block-actions p {
-  margin: 0.25rem 0;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
 }
 
 .loading,
@@ -264,7 +286,7 @@ onMounted(async () => {
   background-color: var(--surface);
   border-radius: 0.5rem;
   border: 1px solid var(--border);
-  z-index: 50;
+  z-index: 500;
 }
 
 .loading {
