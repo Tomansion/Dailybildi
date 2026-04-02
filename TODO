@@ -2,7 +2,10 @@
 ✔ Display time before new blocks @done(26-03-29 19:47)
 ✔ Fix drag drop not working for blocks @done(26-03-29 22:57)
 ✔ Fix place click on existing block not placing the block @done(26-03-29 22:57)
+☐ Migrate to React python
 ☐ Generate & display a preview of the world. Or canvas rendering ?
 ☐ Implement square selection and movement of blocks
 ☐ On drag & wheel, rotate
 ☐ Add keyboard controls to rotate blocks & flip
+☐ Newly placed block should be the one selectd for rotation
+☐ Ctrl Z

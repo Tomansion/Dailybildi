@@ -2,124 +2,208 @@
 
 Build block by block as days go by.
 
-## Quick Start
+## Dev setup
 
 ### Prerequisites
 
-- Node.js 22+ and npm
+- **Python 3.9+** and pip
+- **Node.js 16+** and npm
 
 ### Installation
 
-1. **Install dependencies:**
+1. **Clone and navigate to the project:**
 
    ```bash
+   cd Dailybildi
+   ```
+
+2. **Backend Setup (Python):**
+
+   ```bash
+   cd backend
+
+   # Create virtual environment (optional but recommended)
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+   # Install dependencies
+   pip install -e .
+
+   # Configure environment
+   cp .env.example .env
+   # Edit .env and ensure DATABASE_URL and JWT_SECRET are set
+
+   cd ..
+   ```
+
+3. **Frontend Setup (Vue.js):**
+
+   ```bash
+   cd frontend
+
+   # Install dependencies
    npm install
+
+   cd ..
    ```
 
-2. **Configure environment variables:**
+4. **Start the Development Servers:**
+
+   **Option A (Easiest):**
 
    ```bash
-   cp .env.example .env.local
+   chmod +x dev-server.sh
+   ./dev-server.sh
    ```
 
-   Edit `.env.local` and fill in:
-   - `DATABASE_URL` - SQLite database file path (default: file:./dev.db)
-   - `NEXTAUTH_SECRET` - Generate with: `openssl rand -base64 32`
-   - `NEXTAUTH_URL` - Your app URL (default: http://localhost:3000)
+   **Option B (Manual):**
 
-3. **Initialize the database:**
+   Terminal 1 - Start backend:
 
    ```bash
-   npx prisma migrate dev
+   cd backend
+   python -m uvicorn app.main:app --reload
    ```
 
-4. **Seed the block catalog:**
+   Terminal 2 - Start frontend:
 
    ```bash
-   npm run db:seed
+   cd frontend
+   npm run serve
    ```
 
-5. **Start the development server:**
+5. **Open your browser:**
+   - Frontend: http://localhost:3000
+   - API Documentation: http://localhost:8000/docs
 
-   ```bash
-   npm run dev
-   ```
+### Database
 
-6. **Open your browser:**
-   Navigate to http://localhost:3000
+SQLite database is automatically initialized on first backend start.
 
-### Database Management
+To seed the block catalog, create a Python script in `backend/` with:
 
-Prisma provides several useful commands:
+```python
+from app.db import SessionLocal
+from app.services.block_service import BlockService
 
-```bash
-# View and edit your data in a browser
-npm run db:studio
-
-# Create a new migration after schema changes
-npm run db:migrate
-
-# Reset database (WARNING: deletes all data)
-npm run db:reset
+db = SessionLocal()
+blocks = [
+    {
+        "block_id": "block_1",
+        "layer": 0,
+        "rarity": 0,
+        "universe_id": "ink_castle",
+        "image_path": "/univers/ink_castle/tiles/tile_1_0_0.png"
+    },
+    # Add more blocks...
+]
+BlockService.seed_block_catalog(db, blocks)
+print("Block catalog seeded!")
 ```
 
 ### Usage
 
-1. **Register** a new account at `/register`
-2. **Login** and you'll receive 30 initial blocks
-3. **Build** on the canvas by selecting blocks from your inventory
-4. **Manipulate** blocks with rotate, flip, and drag controls
+1. **Register** a new account at the login page
+2. **Login** and you'll automatically receive:
+   - An inventory with 30 initial blocks
+   - A personal world to start building on
+3. **Build** on the infinite canvas:
+   - Use **middle mouse drag** to pan
+   - Use **scroll wheel** to zoom in/out
+   - Click blocks in the inventory to select them
+   - Click on the canvas to place selected blocks
+   - Rotate (±90°), flip, and move blocks as needed
+4. **Daily Blocks**: Every day at 00:00 UTC, 10 random blocks are distributed to all users
 5. **Explore** other users' worlds in the Community page
-6. **Like** worlds you enjoy
+6. **Like** worlds you enjoy - top liked worlds appear at the top
 
 ### Daily Block System
 
-The app automatically selects 10 new blocks every day at midnight UTC using node-cron. The scheduler starts automatically when the Next.js app starts.
+The application automatically distributes 10 new random blocks to all users every day at 00:00 UTC using APScheduler.
+
+The distribution is deterministic - all users receive the same blocks on the same day, selected using weighted randomization based on block rarity.
+
+The scheduler starts automatically when the backend launches.
 
 ## Production Deployment
 
-### Self-Hosted (VPS/Cloud)
+### Building for Production
 
-1. **Build the application:**
+1. **Build the Frontend:**
 
    ```bash
+   cd frontend
    npm run build
+   # Output: dist/ directory
+   cd ..
    ```
 
-2. **Set production environment variables**
+2. **Prepare the Backend:**
 
-   For production, you can use SQLite (simple) or PostgreSQL (recommended for scale):
-   
-   **SQLite:**
-   ```
-   DATABASE_URL="file:./prod.db"
-   ```
-   
-   **PostgreSQL:**
-   ```
-   DATABASE_URL="postgresql://user:password@localhost:5432/dailybildi"
-   ```
-   
-   Then run migrations:
-   ```bash
-   npx prisma migrate deploy
+   The backend is production-ready. Configure environment variables for production:
+
+   ```env
+   DATABASE_URL=sqlite:///./dailybildi.db  # Or use PostgreSQL
+   JWT_SECRET=your-production-secret-key
+   JWT_ALGORITHM=HS256
+   JWT_EXPIRATION_HOURS=720
+   DEBUG=False
+   FRONTEND_URL=https://your-domain.com
    ```
 
-3. **Run the production server:**
+### Self-Hosted Deployment (Linux VPS/Cloud)
+
+1. **Backend Setup on Server:**
 
    ```bash
-   npm start
+   # Install Python and create virtual environment
+   python3 -m venv venv
+   source venv/bin/activate
+
+   # Install dependencies
+   pip install -e .
+
+   # Set environment variables
+   export DATABASE_URL="sqlite:///./dailybildi.db"
+   export JWT_SECRET="your-production-secret"
    ```
 
-4. **Set up a reverse proxy (nginx example):**
+2. **Run Backend with Gunicorn:**
+
+   ```bash
+   pip install gunicorn
+   gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+   ```
+
+3. **Serve Frontend Statically:**
+
+   ```bash
+   # Copy built files to web server directory
+   cp -r frontend/dist/* /var/www/dailybildi/
+   ```
+
+4. **Setup Nginx Reverse Proxy:**
 
    ```nginx
+   upstream backend {
+       server localhost:8000;
+   }
+
    server {
        listen 80;
        server_name your-domain.com;
 
+       root /var/www/dailybildi;
+       index index.html;
+
+       # Frontend static files
        location / {
-           proxy_pass http://localhost:3000;
+           try_files $uri $uri/ /index.html;
+       }
+
+       # Backend API proxy
+       location /api {
+           proxy_pass http://backend;
            proxy_http_version 1.1;
            proxy_set_header Upgrade $http_upgrade;
            proxy_set_header Connection 'upgrade';
@@ -129,10 +213,68 @@ The app automatically selects 10 new blocks every day at midnight UTC using node
    }
    ```
 
-5. **Set up SSL with Let's Encrypt:**
+5. **Setup SSL with Let's Encrypt:**
+
    ```bash
    sudo certbot --nginx -d your-domain.com
    ```
+
+### Docker Deployment (Optional)
+
+If using Docker, update the `Dockerfile` for Python:
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY backend/pyproject.toml .
+RUN pip install -e .
+
+COPY backend/app ./app
+
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+## Architecture
+
+- **Frontend**: Vue.js 3 + Vite + Tailwind CSS + Phaser 3
+- **Backend**: Python + FastAPI + SQLAlchemy ORM
+- **Database**: SQLite (file-based)
+- **Authentication**: JWT tokens
+- **Scheduling**: APScheduler for daily block distribution
+
+## Development
+
+For detailed development setup and API documentation, see [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md)
+
+### Folder Structure
+
+```
+backend/                  # Python FastAPI backend
+├── app/
+│   ├── main.py         # FastAPI app entry point
+│   ├── models.py       # SQLAlchemy models
+│   ├── schemas.py      # Pydantic schemas
+│   ├── services/       # Business logic
+│   ├── routes/         # API endpoints
+│   └── utils/          # JWT, security functions
+├── pyproject.toml      # Python dependencies
+└── .env                # Configuration
+
+frontend/               # Vue.js frontend
+├── src/
+│   ├── views/         # Page components
+│   ├── components/    # Reusable components
+│   ├── stores/        # Pinia state management
+│   ├── services/      # API client
+│   ├── utils/         # Phaser game setup
+│   ├── App.vue        # Root component
+│   └── main.js        # Entry point
+├── package.json       # Node.js dependencies
+├── vite.config.js     # Vite configuration
+└── index.html
+```
 
 ## Specifications
 
