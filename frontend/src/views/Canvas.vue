@@ -47,19 +47,15 @@ let mainScene = null
 const inventoryBlocks = computed(() => {
   const blocks = inventoryStore.inventory?.blocks || []
   return blocks.map(block => ({
-    blockCatalogKey: block.block_catalog.block_id,
+    blockCatalogKey: block.block_id,
     quantity: block.quantity,
     blockData: {
-      id: block.block_catalog.id,
-      layer: block.block_catalog.layer,
-      rarity: block.block_catalog.rarity,
-      imagePath: getTileImageUrl(block.block_catalog.image_path)
+      id: block.block_catalog_id,
+      layer: block.layer,
+      rarity: block.rarity,
+      imagePath: getTileImageUrl(block.image_path)
     }
   }))
-})
-
-const totalBlocks = computed(() => {
-  return inventoryBlocks.value.reduce((sum, b) => sum + b.quantity, 0)
 })
 
 const goHome = () => {

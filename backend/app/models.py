@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
 from app.db import Base
 import uuid
@@ -46,7 +46,8 @@ class UserInventory(Base):
     user_id = Column(String, ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     initial_blocks_received = Column(Boolean, default=False)
-    last_blocks_provided_date = Column(String, nullable=True)  # Format: YYYY-MM-DD
+    last_blocks_provided_date = Column(String, nullable=True)  # Legacy: Format: YYYY-MM-DD
+    last_distributions = Column(JSON, default=dict)  # Per-universe distribution dates: {universe_id: YYYY-MM-DD}
 
     # Relationships
     user = relationship("User", back_populates="inventory")

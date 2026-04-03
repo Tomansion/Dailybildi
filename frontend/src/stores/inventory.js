@@ -34,7 +34,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       placedBlocks.value = (world.placed_blocks || []).map(block => ({
         _key: block.id,
         blockKey: block.id,
-        blockCatalogKey: block.block_catalog.block_id,
+        blockCatalogKey: block.block_id,
         gridX: block.grid_x,
         gridY: block.grid_y,
         rotation: block.rotation || 0,
@@ -42,10 +42,10 @@ export const useInventoryStore = defineStore('inventory', () => {
         flipY: block.flip_y || false,
         zOrder: block.z_order || 0,
         blockData: {
-          id: block.block_catalog.id,
-          layer: block.block_catalog.layer,
-          rarity: block.block_catalog.rarity,
-          imagePath: getTileImageUrl(block.block_catalog.image_path)
+          id: block.block_catalog_id,
+          layer: block.layer,
+          rarity: block.rarity,
+          imagePath: getTileImageUrl(block.image_path)
         }
       }))
       
@@ -62,7 +62,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     try {
       // Find the block catalog ID from the inventory
       const block = inventory.value?.blocks?.find(
-        b => b.block_catalog.block_id === blockCatalogKey
+        b => b.block_id === blockCatalogKey
       )
       
       if (!block) {
@@ -70,7 +70,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       }
 
       const response = await api.post('/world', {
-        block_catalog_id: block.block_catalog.id,
+        block_catalog_id: block.block_catalog_id,
         grid_x: gridX,
         grid_y: gridY,
         z_order: 0,

@@ -27,6 +27,37 @@ class AuthService:
         db.commit()
         db.refresh(new_user)
 
+        # Create inventory and distribute initial blocks
+        from app.services.inventory_service import InventoryService
+        from app.services.block_service import BlockService
+        from app.config import get_settings
+        
+        settings = get_settings()
+        
+        try:
+            # Create inventory
+            inventory = InventoryService.create_inventory(db, new_user.id)
+            
+            # Distribute 30 blocks for the starting universe
+            BlockService.distribute_blocks_to_user(
+                db,
+                inventory.id,
+                settings.UNIVERSE_ID
+            )
+            
+            # Mark that user has received initial blocks
+            new_user.received_initial_blocks = True
+            db.commit()
+        except ValueError as e:
+            # Log but don't fail registration if block distribution fails
+            print(f"⚠️  Warning: {e}")
+            print(f"   Make sure public/univers/{settings.UNIVERSE_ID}/config.json exists with blocks")
+        except Exception as e:
+            # Log but don't fail registration if block distribution fails
+            print(f"Error distributing initial blocks for user {new_user.id}: {e}")
+            import traceback
+            traceback.print_exc()
+
         return {"user_id": new_user.id, "username": new_user.username}
 
     @staticmethod

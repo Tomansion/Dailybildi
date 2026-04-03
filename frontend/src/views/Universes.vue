@@ -31,9 +31,14 @@
             <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
               {{ universe.name }}
             </h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">
-              {{ universe.block_count }} blocks available
-            </p>
+            <div class="mb-4">
+              <p class="text-gray-600 dark:text-gray-400">
+                📦 {{ universe.available_blocks }} blocks available
+              </p>
+              <p class="text-gray-600 dark:text-gray-400">
+                🏗️ {{ universe.placed_blocks }} blocks placed
+              </p>
+            </div>
             <button
               @click="enterUniverse(universe.id)"
               :disabled="enteringUniverse === universe.id"
@@ -84,7 +89,12 @@ export default {
       try {
         this.loading = true;
         this.error = null;
-        const response = await api.get("/universes/");
+        const token = this.authStore.token;
+        const response = await api.get("/universes/", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
         this.universes = response.data.universes;
       } catch (error) {
         this.error = error.response?.data?.detail || error.message || "Failed to load universes";

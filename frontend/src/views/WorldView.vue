@@ -82,12 +82,12 @@ const initializePhaserGame = () => {
       const blockImageMap = new Map()
       
       world.value.placed_blocks.forEach(block => {
-        if (!blockImageMap.has(block.block_catalog.id)) {
-          blockImageMap.set(block.block_catalog.id, {
-            id: block.block_catalog.id,
-            layer: block.block_catalog.layer,
-            rarity: block.block_catalog.rarity,
-            imagePath: getTileImageUrl(block.block_catalog.image_path)
+        if (!blockImageMap.has(block.block_catalog_id)) {
+          blockImageMap.set(block.block_catalog_id, {
+            id: block.block_catalog_id,
+            layer: block.layer,
+            rarity: block.rarity,
+            imagePath: getTileImageUrl(block.image_path)
           })
         }
       })
@@ -98,7 +98,7 @@ const initializePhaserGame = () => {
       const placedBlocks = world.value.placed_blocks.map(block => ({
         _key: block.id,
         blockKey: block.id,
-        blockCatalogKey: block.block_catalog.block_id,
+        blockCatalogKey: block.block_id,
         gridX: block.grid_x,
         gridY: block.grid_y,
         rotation: block.rotation || 0,
@@ -106,10 +106,10 @@ const initializePhaserGame = () => {
         flipY: block.flip_y || false,
         zOrder: block.z_order || 0,
         blockData: {
-          id: block.block_catalog.id,
-          layer: block.block_catalog.layer,
-          rarity: block.block_catalog.rarity,
-          imagePath: getTileImageUrl(block.block_catalog.image_path)
+          id: block.block_catalog_id,
+          layer: block.layer,
+          rarity: block.rarity,
+          imagePath: getTileImageUrl(block.image_path)
         }
       }))
 

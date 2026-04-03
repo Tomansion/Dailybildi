@@ -2,7 +2,9 @@
   <div class="inventory-container" @pointerdown.stop @click.stop>
     <div class="inventory-header">
       <h3>Inventory</h3>
-      <p class="block-count">{{ totalBlocks }} {{ totalBlocks === 1 ? 'block' : 'blocks' }}</p>
+      <p class="block-count">
+        {{ totalBlocks }} {{ totalBlocks === 1 ? "block" : "blocks" }}
+      </p>
     </div>
 
     <div class="scroll-area">
@@ -18,10 +20,12 @@
           @click="$emit('block-select', block)"
         >
           <div class="block-image">
-            <img :src="block.blockData.imagePath" :alt="block.blockCatalogKey" />
+            <img
+              :src="block.blockData.imagePath"
+              :alt="block.blockCatalogKey"
+            />
           </div>
           <div class="block-info">
-            <p class="block-name">{{ block.blockCatalogKey }}</p>
             <p class="block-quantity">{{ block.quantity }}</p>
           </div>
         </div>
@@ -36,42 +40,42 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { getUniverseConfigPath } from '@/lib/constants'
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { getUniverseConfigPath } from "@/lib/constants";
 
 const props = defineProps({
   blocks: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   selectedBlockKey: {
     type: String,
-    default: null
-  }
-})
+    default: null,
+  },
+});
 
-defineEmits(['block-select'])
+defineEmits(["block-select"]);
 
-const backgroundColor = ref('#ffffff')
-const timeRemaining = ref('--:--:--')
-let intervalId = null
+const backgroundColor = ref("#ffffff");
+const timeRemaining = ref("--:--:--");
+let intervalId = null;
 
 const totalBlocks = computed(() => {
-  return props.blocks.reduce((sum, b) => sum + b.quantity, 0)
-})
+  return props.blocks.reduce((sum, b) => sum + b.quantity, 0);
+});
 
 const loadConfig = async () => {
   try {
-    const response = await fetch(getUniverseConfigPath())
-    const config = await response.json()
-    backgroundColor.value = config.backgroundColor || '#ffffff'
+    const response = await fetch(getUniverseConfigPath());
+    const config = await response.json();
+    backgroundColor.value = config.backgroundColor || "#ffffff";
   } catch (error) {
-    console.error('Failed to load universe config:', error)
+    console.error("Failed to load universe config:", error);
   }
-}
+};
 
 const calculateTimeRemaining = () => {
-  const now = new Date()
+  const now = new Date();
   const tomorrow = new Date(
     Date.UTC(
       now.getUTCFullYear(),
@@ -79,30 +83,30 @@ const calculateTimeRemaining = () => {
       now.getUTCDate() + 1,
       0,
       0,
-      0
-    )
-  )
+      0,
+    ),
+  );
 
-  const diff = tomorrow.getTime() - now.getTime()
+  const diff = tomorrow.getTime() - now.getTime();
 
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  timeRemaining.value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-}
+  timeRemaining.value = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
 
 onMounted(() => {
-  loadConfig()
-  calculateTimeRemaining()
-  intervalId = setInterval(calculateTimeRemaining, 1000)
-})
+  loadConfig();
+  calculateTimeRemaining();
+  intervalId = setInterval(calculateTimeRemaining, 1000);
+});
 
 onBeforeUnmount(() => {
   if (intervalId) {
-    clearInterval(intervalId)
+    clearInterval(intervalId);
   }
-})
+});
 </script>
 
 <style scoped>
@@ -155,6 +159,7 @@ onBeforeUnmount(() => {
 }
 
 .block-card {
+  position: relative;
   background-color: var(--background);
   border: 2px solid transparent;
   border-radius: 0.5rem;
@@ -188,11 +193,6 @@ onBeforeUnmount(() => {
   object-fit: contain;
 }
 
-.block-info {
-  text-align: center;
-  font-size: 0.875rem;
-}
-
 .block-name {
   margin: 0;
   color: var(--text-primary);
@@ -204,9 +204,16 @@ onBeforeUnmount(() => {
 }
 
 .block-quantity {
-  margin: 0.25rem 0 0 0;
+  position: absolute;
+  top: 0rem;
+  right: 0rem;
   color: var(--text-secondary);
   font-size: 0.75rem;
+  font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
 }
 
 .inventory-footer {

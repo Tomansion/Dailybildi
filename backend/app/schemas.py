@@ -47,7 +47,12 @@ class InventoryBlockResponse(BaseModel):
     block_catalog_id: str
     quantity: int
     acquired_date: datetime
-    block_catalog: BlockCatalogResponse
+    # Block metadata loaded from filesystem/config.json
+    block_id: str
+    layer: int
+    rarity: int
+    image_path: str
+    block_catalog: Optional[BlockCatalogResponse] = None  # For backwards compatibility
 
     class Config:
         from_attributes = True
@@ -58,6 +63,7 @@ class UserInventoryResponse(BaseModel):
     user_id: str
     updated_at: datetime
     blocks: list[InventoryBlockResponse]
+    total_blocks: int = 0
 
     class Config:
         from_attributes = True
@@ -93,7 +99,12 @@ class PlacedBlockResponse(BaseModel):
     flip_y: bool
     z_order: int
     placed_at: datetime
-    block_catalog: BlockCatalogResponse
+    # Block metadata loaded from filesystem/config.json
+    block_id: str = ''
+    layer: int = 0
+    rarity: int = 0
+    image_path: str = ''
+    block_catalog: Optional[BlockCatalogResponse] = None
 
     class Config:
         from_attributes = True

@@ -31,6 +31,7 @@
     { "id": 17, "layer": 1, "rarity": 8, "imagePath": "tiles/tile_17_1_8.png" },
     { "id": 18, "layer": 1, "rarity": 5, "imagePath": "tiles/tile_18_1_5.png" },
     { "id": 19, "layer": 1, "rarity": 8, "imagePath": "tiles/tile_19_1_8.png" },
-    { "id": 20, "layer": 1, "rarity": 2, "imagePath": "tiles/tile_20_1_2.png" }
+    { "id": 20, "layer": 1, "rarity": 2, "imagePath": "tiles/tile_20_1_2.png" },
+    { "id": 21, "layer": 1, "rarity": 6, "imagePath": "tiles/tile_21_1_6.png" }
   ]
 }

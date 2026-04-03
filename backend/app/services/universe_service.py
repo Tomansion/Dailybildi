@@ -61,6 +61,15 @@ class UniverseService:
         return universes
     
     @staticmethod
+    def get_universe_blocks(universe_id: str) -> list[dict]:
+        """Get all blocks for a specific universe from its config"""
+        try:
+            config = UniverseService.get_universe_config(universe_id)
+            return config.get("blocks", [])
+        except FileNotFoundError:
+            return []
+    
+    @staticmethod
     def seed_universe_blocks(db: Session, universe_id: str) -> int:
         """
         Seed blocks for a universe from its config.json to the database.

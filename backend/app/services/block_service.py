@@ -1,9 +1,11 @@
 import random
 from datetime import date
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.models import BlockCatalog
+from sqlalchemy.orm.attributes import flag_modified
 from app.config import get_settings
 from app.daily_selection import DailySelectionManager
+from app.services.block_loader import BlockLoader
 
 settings = get_settings()
 
@@ -46,31 +48,36 @@ class BlockService:
     def distribute_blocks_to_user(
         db: Session,
         inventory_id: str,
-        all_blocks: list,
-        universe_config: dict = None
+        universe_id: str
     ) -> dict:
         """
-        Distribute blocks to user based on date and first-time status.
-        Returns 30 blocks on first time, 10 blocks on new days.
+        Distribute blocks to user based on per-universe dates.
+        Loads blocks from config.json in public folder (filesystem source of truth).
+        
+        Logic:
+        - If no distribution date for this universe: give 30 blocks (first time)
+        - If new day for this universe:
+          - If current inventory <= 10 blocks: clear all blocks then add 10 new
+          - If current inventory > 10 blocks: keep all, add 10 new
         
         Args:
             db: Database session
             inventory_id: User's inventory ID
-            all_blocks: List of BlockCatalog objects
-            universe_config: Universe config (needed for daily selections)
+            universe_id: Universe ID (e.g. 'ink_castle')
             
         Returns:
-            Dict with distribution info: {
-                "blocks_added": int,
-                "is_first_time": bool,
-                "distribution_date": str
-            }
+            Dict with distribution info
         """
-        from app.models import UserInventory
+        from app.models import UserInventory, InventoryBlock
         from app.services.inventory_service import InventoryService
         
+        if not universe_id:
+            raise ValueError("Universe ID required")
+        
+        # Load blocks from filesystem
+        all_blocks = BlockLoader.load_blocks(universe_id)
         if not all_blocks:
-            raise ValueError("No blocks available")
+            raise ValueError(f"No blocks found for universe '{universe_id}'. Check config.json in public/univers/{universe_id}/")
         
         # Get inventory
         inventory = db.query(UserInventory).filter(UserInventory.id == inventory_id).first()
@@ -78,67 +85,103 @@ class BlockService:
             raise ValueError("Inventory not found")
         
         today = str(date.today())
-        is_first_time = not inventory.initial_blocks_received
-        last_provided_date = inventory.last_blocks_provided_date
         
-        # Check if we should provide blocks
-        blocks_to_add = []
+        # Initialize last_distributions if needed
+        if not inventory.last_distributions:
+            inventory.last_distributions = {}
         
-        if is_first_time:
-            # First time: give 30 blocks from weighted random of all blocks
-            blocks_to_add = all_blocks
-            count = settings.INITIAL_BLOCKS_COUNT
-        elif last_provided_date != today:
-            # New day: give 10 blocks from today's daily selection
-            if universe_config:
-                try:
-                    daily_block_ids = BlockService.get_daily_block_ids(universe_config)
-                    # Get the actual block objects for these IDs
-                    for block_id in daily_block_ids:
-                        block = next((b for b in all_blocks if str(b.block_id) == str(block_id)), None)
-                        if block:
-                            blocks_to_add.append(block)
-                except Exception as e:
-                    print(f"Error getting daily blocks: {e}")
-                    # Fallback: just use weighted random from all blocks
-                    blocks_to_add = all_blocks
-                    count = settings.DAILY_BLOCKS_COUNT
-            else:
-                blocks_to_add = all_blocks
-                count = settings.DAILY_BLOCKS_COUNT
-        else:
-            # Same day, no new blocks
+        last_distribution_date = inventory.last_distributions.get(universe_id)
+        
+        # Case 1: First time for this universe - give 30 blocks
+        if last_distribution_date is None:
+            # Get today's initial block selection (cached deterministically per universe/date)
+            block_ids = DailySelectionManager.get_or_create_initial_blocks(
+                universe_id,
+                [{"id": b.id, "rarity": b.rarity} for b in all_blocks]
+            )
+            
+            # Add the selected blocks to inventory
+            for block_id in block_ids:
+                InventoryService.add_block_to_inventory(
+                    db,
+                    inventory_id=inventory_id,
+                    block_catalog_id=str(block_id),
+                    quantity=1
+                )
+            
+            inventory.last_distributions[universe_id] = today
+            flag_modified(inventory, "last_distributions")
+            db.commit()
+            
+            return {
+                "blocks_added": len(block_ids),
+                "is_first_time": True,
+                "action": "initial",
+                "distribution_date": today
+            }
+        
+        # Case 2: Same day - no distribution
+        elif last_distribution_date == today:
             return {
                 "blocks_added": 0,
                 "is_first_time": False,
-                "distribution_date": today,
-                "reason": "Already received blocks today"
+                "action": "skipped",
+                "reason": "Already received blocks today",
+                "distribution_date": today
             }
         
-        # If we have daily blocks, use that count, otherwise use the determined count
-        if is_first_time:
-            count = settings.INITIAL_BLOCKS_COUNT
+        # Case 3: New day - conditional clearing + 10 new blocks
         else:
-            count = len(blocks_to_add) if blocks_to_add else settings.DAILY_BLOCKS_COUNT
-        
-        # Distribute blocks
-        distributed = BlockService.select_and_add_blocks(
-            db,
-            inventory_id,
-            blocks_to_add,
-            count
-        )
-        
-        # Update inventory tracking
-        inventory.initial_blocks_received = True
-        inventory.last_blocks_provided_date = today
-        db.commit()
-        
-        return {
-            "blocks_added": distributed,
-            "is_first_time": is_first_time,
-            "distribution_date": today
-        }
+            # Count current inventory blocks
+            current_count = db.query(InventoryBlock).filter(
+                InventoryBlock.inventory_id == inventory_id
+            ).with_entities(
+                func.sum(InventoryBlock.quantity)
+            ).scalar() or 0
+            
+            # If <= 10 blocks, clear them all
+            if current_count <= 10:
+                db.query(InventoryBlock).filter(
+                    InventoryBlock.inventory_id == inventory_id
+                ).delete()
+                db.commit()
+            
+            # Add 10 new blocks
+            count = settings.DAILY_BLOCKS_COUNT
+            
+            # Get today's daily selection if available
+            blocks_to_add = all_blocks
+            try:
+                universe_config = {"id": universe_id, "blocks": []}
+                daily_block_ids = BlockService.get_daily_block_ids(universe_config)
+                daily_blocks = [
+                    b for b in all_blocks 
+                    if str(b.block_id) in [str(id) for id in daily_block_ids]
+                ]
+                if daily_blocks:
+                    blocks_to_add = daily_blocks
+            except Exception as e:
+                print(f"Error getting daily blocks: {e}")
+            
+            distributed = BlockService.select_and_add_blocks(
+                db,
+                inventory_id,
+                blocks_to_add,
+                count
+            )
+            
+            inventory.last_distributions[universe_id] = today
+            flag_modified(inventory, "last_distributions")
+            db.commit()
+            
+            return {
+                "blocks_added": distributed,
+                "is_first_time": False,
+                "action": "daily",
+                "cleared_old_inventory": current_count <= 10,
+                "previous_count": current_count,
+                "distribution_date": today
+            }
     
     @staticmethod
     def select_and_add_blocks(
@@ -167,7 +210,7 @@ class BlockService:
         return distributed
 
     @staticmethod
-    def select_random_block(blocks: list) -> BlockCatalog:
+    def select_random_block(blocks: list):
         """Select a random block from a list, weighted by rarity"""
         if not blocks:
             raise ValueError("No blocks available")

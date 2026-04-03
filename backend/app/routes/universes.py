@@ -3,18 +3,62 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.services.universe_service import UniverseService
 from app.utils.jwt import verify_token
+from app.models import World, UserInventory
 
 router = APIRouter(prefix="/api/universes", tags=["universes"])
 
 
+def get_current_user_id(authorization: str = Header(None)) -> str:
+    """Extract user ID from JWT token in Authorization header"""
+    if not authorization:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+    
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token format")
+    
+    token = parts[1]
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return payload.get("sub")
+
+
 @router.get("/")
-def list_universes():
-    """Get list of all available universes"""
+def list_universes(db: Session = Depends(get_db), user_id: str = Depends(get_current_user_id)):
+    """Get list of all available universes with user's available and placed block counts"""
     try:
         universes = UniverseService.list_universes()
+        
+        # Get user's inventory total (available blocks)
+        inventory = db.query(UserInventory).filter(
+            UserInventory.user_id == user_id
+        ).first()
+        
+        total_available_blocks = 0
+        if inventory and inventory.blocks:
+            total_available_blocks = sum(block.quantity for block in inventory.blocks)
+        
+        # For each universe, include both available and placed block counts
+        for universe in universes:
+            # Get placed blocks count for this universe
+            world = db.query(World).filter(
+                World.user_id == user_id,
+                World.universe_id == universe["id"]
+            ).first()
+            
+            placed_block_count = 0
+            if world:
+                placed_block_count = len(world.placed_blocks) if world.placed_blocks else 0
+            
+            # Include both counts
+            universe["available_blocks"] = total_available_blocks
+            universe["placed_blocks"] = placed_block_count
+        
         return {
             "universes": universes,
-            "count": len(universes)
+            "count": len(universes),
+            "total_available_blocks": total_available_blocks
         }
     except Exception as e:
         raise HTTPException(
@@ -114,15 +158,12 @@ def seed_universe(
     universe_id: str,
     db: Session = Depends(get_db)
 ):
-    """Seed blocks for a universe (admin endpoint)"""
-    try:
-        count = UniverseService.seed_universe_blocks(db, universe_id)
-        return {
-            "universe_id": universe_id,
-            "blocks_seeded": count
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+    """
+    DEPRECATED: Blocks are now loaded from config.json files in public/univers/{universe_id}/
+    This endpoint is kept for backwards compatibility but does nothing.
+    """
+    return {
+        "universe_id": universe_id,
+        "message": "Blocks are loaded from filesystem config.json files. No database seeding needed.",
+        "blocks_seeded": 0
+    }

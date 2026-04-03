@@ -52,12 +52,8 @@ class WorldService:
         user_id: str = None
     ) -> PlacedBlock:
         """Place a block on the world"""
-        # Verify block exists
-        block = db.query(BlockCatalog).filter(
-            BlockCatalog.id == block_catalog_id
-        ).first()
-        if not block:
-            raise ValueError("Block not found")
+        # Note: Block existence is verified by the route handler against inventory
+        # No need to query BlockCatalog since blocks are now filesystem-based
 
         # Create placed block
         placed_block = PlacedBlock(

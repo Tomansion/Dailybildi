@@ -28,7 +28,6 @@ class Settings:
     TIMEZONE: str = os.getenv("TIMEZONE", "UTC")
     
     # Game Constants
-    BLOCK_SIZE: int = 64
     INITIAL_BLOCKS_COUNT: int = 30
     DAILY_BLOCKS_COUNT: int = 10
     UNIVERSE_ID: str = "ink_castle"

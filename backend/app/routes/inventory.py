@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.schemas import UserInventoryResponse
+from app.schemas import UserInventoryResponse, InventoryBlockResponse
 from app.services.inventory_service import InventoryService
+from app.services.block_service import BlockService
+from app.services.block_loader import BlockLoader
 from app.utils.jwt import verify_token
+from app.models import World
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -26,16 +29,108 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
 
 @router.get("", response_model=UserInventoryResponse)
 def get_inventory(db: Session = Depends(get_db), user_id: str = Depends(get_current_user_id)):
-    """Get user's inventory"""
+    """Get user's inventory with daily block distribution check"""
     try:
         inventory = InventoryService.get_user_inventory(db, user_id)
         if not inventory:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory not found")
-        return inventory
+        
+        # Check and distribute daily blocks for all universes user has entered
+        _distribute_daily_blocks_if_needed(db, user_id)
+        
+        # Refresh inventory to get updated blocks
+        db.refresh(inventory)
+        
+        # Build a map of block_id -> block metadata from all universes
+        block_metadata_map = {}
+        from app.services.universe_service import UniverseService
+        universes = UniverseService.list_universes()
+        
+        for universe in universes:
+            blocks = BlockLoader.load_blocks(universe['id'])
+            for block in blocks:
+                block_metadata_map[block.id] = {
+                    'block_id': block.block_id,
+                    'layer': block.layer,
+                    'rarity': block.rarity,
+                    'image_path': block.image_path
+                }
+        
+        # Calculate total blocks and enrich block data
+        total_blocks = 0
+        blocks_response = []
+        
+        for block in inventory.blocks:
+            total_blocks += block.quantity
+            
+            # Get block metadata
+            metadata = block_metadata_map.get(block.block_catalog_id, {})
+            
+            block_response = InventoryBlockResponse(
+                id=block.id,
+                block_catalog_id=block.block_catalog_id,
+                quantity=block.quantity,
+                acquired_date=block.acquired_date,
+                block_id=metadata.get('block_id', ''),
+                layer=metadata.get('layer', 0),
+                rarity=metadata.get('rarity', 0),
+                image_path=metadata.get('image_path', '')
+            )
+            blocks_response.append(block_response)
+        
+        # Build response
+        response = UserInventoryResponse(
+            id=inventory.id,
+            user_id=inventory.user_id,
+            updated_at=inventory.updated_at,
+            blocks=blocks_response,
+            total_blocks=total_blocks
+        )
+        
+        return response
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+def _distribute_daily_blocks_if_needed(db: Session, user_id: str):
+    """Check and distribute daily blocks for all universes user has entered"""
+    try:
+        # Get all worlds for this user
+        worlds = db.query(World).filter(World.user_id == user_id).all()
+        
+        if not worlds:
+            return
+        
+        # Get unique universe IDs
+        universe_ids = set(world.universe_id for world in worlds)
+        
+        # For each universe, check if we should distribute daily blocks
+        for universe_id in universe_ids:
+            try:
+                # Get user's inventory
+                inventory = InventoryService.get_user_inventory(db, user_id)
+                if not inventory:
+                    continue
+                
+                # Distribute blocks if needed (loads blocks from filesystem/config.json)
+                BlockService.distribute_blocks_to_user(
+                    db,
+                    inventory.id,
+                    universe_id
+                )
+            except ValueError as e:
+                # Log but don't fail - continue with other universes
+                print(f"⚠️  Universe {universe_id}: {e}")
+                continue
+            except Exception as e:
+                # Log but don't fail - continue with other universes
+                print(f"Error distributing blocks for universe {universe_id}: {e}")
+                continue
+    except Exception as e:
+        print(f"Error in daily block distribution: {e}")
+        # Don't raise - this is a non-critical operation
 
 
 @router.post("/add-block")
