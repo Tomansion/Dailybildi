@@ -17,7 +17,10 @@
           :key="block.blockCatalogKey"
           class="block-card"
           :class="{ selected: selectedBlockKey === block.blockCatalogKey }"
+          draggable="true"
           @click="$emit('block-select', block)"
+          @dragstart="handleDragStart($event, block)"
+          @dragend="handleDragEnd"
         >
           <div class="block-image">
             <img
@@ -101,6 +104,25 @@ onMounted(() => {
   calculateTimeRemaining();
   intervalId = setInterval(calculateTimeRemaining, 1000);
 });
+
+const handleDragStart = (event, block) => {
+  // Store block data in dataTransfer
+  event.dataTransfer.effectAllowed = "copy";
+  event.dataTransfer.setData(
+    "application/json",
+    JSON.stringify({
+      imagePath: block.blockData.imagePath,
+      blockCatalogKey: block.blockCatalogKey,
+      id: block.blockData.id,
+      layer: block.blockData.layer,
+      rarity: block.blockData.rarity,
+    })
+  );
+};
+
+const handleDragEnd = () => {
+  // Optional: add any cleanup needed after drag ends
+};
 
 onBeforeUnmount(() => {
   if (intervalId) {

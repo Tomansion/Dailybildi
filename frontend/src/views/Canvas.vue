@@ -8,7 +8,13 @@
         @block-select="handleBlockSelect"
       />
 
-      <div id="phaser-container" class="phaser-container"></div>
+      <div 
+        id="phaser-container" 
+        class="phaser-container"
+        @dragover="handleDragOver"
+        @drop="handleDropBlock"
+        @dragleave="handleDragLeave"
+      ></div>
 
       <BlockActionButtons
         :hasSelectedBlock="hasSelectedBlock"
@@ -81,6 +87,51 @@ const handleBlockSelect = (block) => {
 
   if (mainScene) {
     mainScene.selectBlockForPlacement(selectedBlockForPlacement.value)
+  }
+}
+
+const handleDragOver = (event) => {
+  // Prevent default to allow drop
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'copy'
+  // Optional: add visual feedback
+  event.target.classList.add('drag-over')
+}
+
+const handleDragLeave = (event) => {
+  // Remove visual feedback when dragging leaves
+  if (event.target.id === 'phaser-container') {
+    event.target.classList.remove('drag-over')
+  }
+}
+
+const handleDropBlock = async (event) => {
+  event.preventDefault()
+  event.target.classList.remove('drag-over')
+  
+  try {
+    // Extract block data from dataTransfer
+    const blockDataJson = event.dataTransfer.getData('application/json')
+    if (!blockDataJson) {
+      return
+    }
+    
+    const blockData = JSON.parse(blockDataJson)
+    
+    // Get position relative to the phaser container (not viewport)
+    const phaserContainer = document.getElementById('phaser-container')
+    const rect = phaserContainer.getBoundingClientRect()
+    const pointer = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    }
+    
+    // Call the Phaser method to place block at drop position
+    if (mainScene) {
+      mainScene.placeBlockAtDropPosition(blockData, pointer)
+    }
+  } catch (err) {
+    console.error('Failed to process block drop:', err)
   }
 }
 
@@ -278,16 +329,15 @@ onBeforeUnmount(() => {
 .header-btn {
   background-color: var(--primary);
   color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
 }
 
 .header-btn:hover {
   background-color: var(--primary-dark);
+}
+
+.phaser-container.drag-over {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 2px dashed var(--primary);
 }
 
 .canvas-content {

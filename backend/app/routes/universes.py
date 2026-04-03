@@ -152,18 +152,3 @@ def enter_universe_auth(
             detail=str(e)
         )
 
-
-@router.post("/{universe_id}/seed")
-def seed_universe(
-    universe_id: str,
-    db: Session = Depends(get_db)
-):
-    """
-    DEPRECATED: Blocks are now loaded from config.json files in public/univers/{universe_id}/
-    This endpoint is kept for backwards compatibility but does nothing.
-    """
-    return {
-        "universe_id": universe_id,
-        "message": "Blocks are loaded from filesystem config.json files. No database seeding needed.",
-        "blocks_seeded": 0
-    }

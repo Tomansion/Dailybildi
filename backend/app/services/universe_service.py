@@ -70,44 +70,6 @@ class UniverseService:
             return []
     
     @staticmethod
-    def seed_universe_blocks(db: Session, universe_id: str) -> int:
-        """
-        Seed blocks for a universe from its config.json to the database.
-        Blocks are loaded from the universe config, not discovered from filesystem.
-        """
-        try:
-            config = UniverseService.get_universe_config(universe_id)
-        except FileNotFoundError:
-            print(f"Universe config not found for {universe_id}")
-            return 0
-        
-        blocks_data = config.get("blocks", [])
-        created_count = 0
-        
-        for block_config in blocks_data:
-            block_id = str(block_config.get("id"))
-            
-            # Check if block already exists
-            existing = db.query(BlockCatalog).filter(
-                BlockCatalog.block_id == block_id,
-                BlockCatalog.universe_id == universe_id
-            ).first()
-            
-            if not existing:
-                block = BlockCatalog(
-                    block_id=block_id,
-                    layer=block_config.get("layer", 0),
-                    rarity=block_config.get("rarity", 0),
-                    universe_id=universe_id,
-                    image_path=block_config.get("imagePath", "")
-                )
-                db.add(block)
-                created_count += 1
-        
-        db.commit()
-        return created_count
-    
-    @staticmethod
     def initialize_user_in_universe(
         db: Session,
         user_id: str,

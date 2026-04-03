@@ -21,12 +21,5 @@ fi
 echo "Running database migrations..."
 npx prisma migrate deploy
 
-# Seed the database if needed
-if [ ! -f /app/data/.seeded ]; then
-  echo "Seeding database..."
-  npm run db:seed || true
-  touch /app/data/.seeded
-fi
-
 echo "Starting Next.js server..."
 npm start
