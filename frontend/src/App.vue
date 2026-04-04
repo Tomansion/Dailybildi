@@ -6,17 +6,17 @@
             <img src="/icons/logo.svg" alt="Dailybildi" class="nav-logo" />
             Dailybildi</router-link>
         <ul class="nav-menu">
+          <li v-if="isAuthenticated" class="nav-item">
+            <router-link to="/universes" class="nav-link">Universes</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/community" class="nav-link">Community</router-link>
+          </li>
           <li v-if="!isAuthenticated" class="nav-item">
             <router-link to="/login" class="nav-link">Login</router-link>
           </li>
           <li v-if="!isAuthenticated" class="nav-item">
             <router-link to="/register" class="nav-link">Register</router-link>
-          </li>
-          <li v-if="isAuthenticated" class="nav-item">
-            <router-link to="/universes" class="nav-link">Universes</router-link>
-          </li>
-          <li v-if="isAuthenticated" class="nav-item">
-            <router-link to="/community" class="nav-link">Community</router-link>
           </li>
           <li v-if="isAuthenticated" class="nav-item">
             <button @click="logout" class="nav-logout">Logout</button>

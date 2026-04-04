@@ -85,6 +85,7 @@
 @media (max-width: 1024px) {
   .landing-container {
     flex-direction: column;
+    height: auto;
   }
 }
 
@@ -101,7 +102,7 @@
 @media (max-width: 1024px) {
   .landing-left {
     padding: 1rem;
-    min-height: 50vh;
+    min-height: auto;
   }
 }
 
@@ -179,7 +180,7 @@
   .landing-right {
     border-left: none;
     border-top: 1px solid var(--border);
-    min-height: 50vh;
+    min-height: auto;
   }
 }
 

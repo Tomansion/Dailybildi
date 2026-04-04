@@ -28,18 +28,27 @@
           class="world-card"
           @click="viewWorld(world.id)"
         >
-          <h3>{{ world.user.username }}</h3>
-          <p class="world-date">{{ formatDate(world.created_at) }}</p>
+          <div class="card-header">
+            <div>
+              <h3>{{ world.user.username }}</h3>
+              <p class="world-date">{{ formatDate(world.created_at) }}</p>
+            </div>
+          </div>
           <div class="world-stats">
-            <span class="stat">
-              <img src="/icons/heart.svg" alt="likes" class="stat-icon" />
-              {{ world.like_count }}
-            </span>
             <span class="stat">
               <img src="/icons/bricks.svg" alt="placed blocks" class="stat-icon" />
               {{ world.placed_blocks.length }}
             </span>
           </div>
+          <button 
+            class="like-button"
+            :class="{ 'liked': world.liked }"
+            :disabled="liking[world.id]"
+            @click="likeWorld(world.id, $event)"
+          >
+            <img src="/icons/heart.svg" alt="like" class="like-icon" />
+            {{ world.like_count }}
+          </button>
         </BaseCard>
       </div>
 
@@ -53,13 +62,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import BaseCard from '../components/base/BaseCard.vue'
 import BaseButton from '../components/base/BaseButton.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
+
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const worlds = ref([])
 const loading = ref(false)
@@ -69,6 +82,7 @@ const skip = ref(0)
 const limit = ref(20)
 const hasMore = ref(false)
 const total = ref(0)
+const liking = ref({})
 
 const fetchWorlds = async () => {
   loading.value = true
@@ -120,6 +134,31 @@ const loadMore = async () => {
 
 const viewWorld = (worldId) => {
   router.push(`/community/${worldId}`)
+}
+
+const likeWorld = async (worldId, event) => {
+  event.stopPropagation()
+  
+  if (!isAuthenticated.value) {
+    router.push('/login')
+    return
+  }
+
+  liking.value[worldId] = true
+  
+  try {
+    await api.post(`/likes/${worldId}`)
+    
+    const world = worlds.value.find(w => w.id === worldId)
+    if (world) {
+      world.like_count++
+      world.liked = true
+    }
+  } catch (err) {
+    console.error('Failed to like world', err)
+  } finally {
+    liking.value[worldId] = false
+  }
 }
 
 const formatDate = (dateString) => {
@@ -235,6 +274,49 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.like-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  border-radius: 0;
+}
+
+.like-button:hover:not(:disabled) {
+  background-color: var(--error);
+  color: var(--background);
+  border-color: var(--error);
+}
+
+.like-button.liked {
+  background-color: var(--error);
+  color: var(--background);
+  border-color: var(--error);
+}
+
+.like-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.like-icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
 }
 
 .stat-icon {
