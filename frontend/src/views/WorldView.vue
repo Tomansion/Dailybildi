@@ -1,6 +1,17 @@
 <template>
   <div class="world-view-container">
-    <button @click="goBack" class="back-btn">← Back to Community</button>
+    <div class="header-controls">
+      <button @click="goBack" class="back-btn">← Back to Community</button>
+      <button 
+        v-if="world && authStore.isAuthenticated"
+        @click="toggleLike" 
+        class="like-btn"
+        :class="{ liked: isLiked }"
+      >
+        <img :src="isLiked ? '/icons/heart-filled.svg' : '/icons/heart.svg'" alt="like" class="like-icon" />
+        {{ world.like_count }}
+      </button>
+    </div>
 
     <div v-if="loading" class="loading">Loading world...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
@@ -186,19 +197,52 @@ onBeforeUnmount(() => {
   align-items: self-start;
 }
 
-.back-btn {
+.header-controls {
+  display: flex;
+  gap: 1rem;
   margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.back-btn,
+.like-btn {
   background-color: transparent;
   color: var(--text-primary);
   border: 1px solid var(--text-primary);
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.back-btn:hover {
+.back-btn:hover,
+.like-btn:hover {
   background-color: var(--text-primary);
   color: var(--background);
+}
+
+.like-btn.liked {
+  border-color: #ff4458;
+  color: #ff4458;
+}
+
+.like-btn.liked:hover {
+  background-color: #ff4458;
+  color: var(--background);
+}
+
+.like-icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+}
+
+.like-btn.liked .like-icon {
+  filter: invert(34%) sepia(100%) saturate(748%) hue-rotate(340deg) brightness(95%) contrast(90%);
 }
 
 .world-detail {

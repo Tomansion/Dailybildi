@@ -13,7 +13,7 @@
             <router-link to="/register" class="nav-link">Register</router-link>
           </li>
           <li v-if="isAuthenticated" class="nav-item">
-            <router-link to="/" class="nav-link">Universes</router-link>
+            <router-link to="/universes" class="nav-link">Universes</router-link>
           </li>
           <li v-if="isAuthenticated" class="nav-item">
             <router-link to="/community" class="nav-link">Community</router-link>

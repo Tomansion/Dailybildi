@@ -4,6 +4,12 @@ import { useAuthStore } from './stores/auth'
 const routes = [
   {
     path: '/',
+    name: 'Landing',
+    component: () => import('./views/Landing.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/universes',
     name: 'Universes',
     component: () => import('./views/Universes.vue'),
     meta: { requiresAuth: true }
@@ -54,7 +60,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
   } else if ((to.name === 'Login' || to.name === 'Register') && authStore.isAuthenticated) {
-    next('/')
+    next('/universes')
   } else {
     next()
   }

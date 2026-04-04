@@ -22,5 +22,13 @@ export default defineConfig({
     target: 'esnext',
     minify: 'terser',
     sourcemap: false,
+    rollupOptions: {
+      onwarn(warning) {
+        // Ignore unresolved assets from public folder
+        if (warning.code === 'UNRESOLVED_ENTRY') {
+          return
+        }
+      }
+    }
   }
 })
