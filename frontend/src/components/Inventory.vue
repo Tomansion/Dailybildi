@@ -156,7 +156,7 @@ onBeforeUnmount(() => {
 .blocks-grid {
   padding: 0.5rem;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
 }
 
@@ -170,30 +170,26 @@ onBeforeUnmount(() => {
 
 .block-card {
   position: relative;
-  background-color: var(--background);
-  border: 2px solid var(--border);
-  border-radius: 0;
-  padding: 0.25rem;
   cursor: pointer;
-  transition: all 0.2s;
+  margin-bottom: 0.25rem;
+  background-color: var(--border);
+  border-radius: 0.25rem;
+  padding: 0.25rem;
 }
 
 .block-card:hover {
-  border-color: var(--text-primary);
   transform: scale(1.05);
 }
 
 .block-card.selected {
-  border-color: var(--text-primary);
-  background-color: var(--surface);
+  transform: scale(1.05);
+  border: 1px solid red;
 }
 
 .block-image {
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  margin-bottom: 0.25rem;
-  background-color: var(--border);
 }
 
 .block-image img {
@@ -204,15 +200,21 @@ onBeforeUnmount(() => {
 
 .block-quantity {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
+  top: 0;
+  right: 0;
+  width: 1rem;
+  height: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(30%, -30%);
   color: var(--text-secondary);
   font-size: 0.65rem;
   font-weight: 600;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: black;
   color: white;
   padding: 0.1rem 0.3rem;
-  border-radius: 0;
+  border-radius: 9999px;
 }
 
 .inventory-footer {
