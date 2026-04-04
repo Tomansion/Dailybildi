@@ -12,6 +12,14 @@
         />
 
         <BaseInput
+          v-model="form.displayName"
+          label="Display Name"
+          type="text"
+          placeholder="How you want to be known"
+          required
+        />
+
+        <BaseInput
           v-model="form.password"
           label="Password"
           type="password"
@@ -62,6 +70,7 @@ const authStore = useAuthStore()
 
 const form = ref({
   username: '',
+  displayName: '',
   password: '',
   confirmPassword: ''
 })
@@ -79,6 +88,7 @@ const handleRegister = async () => {
 
   try {
     const response = await api.post('/auth/register', {
+      display_name: form.value.displayName,
       username: form.value.username,
       password: form.value.password
     })

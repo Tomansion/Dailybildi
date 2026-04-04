@@ -192,7 +192,7 @@ class TestUserRegistration:
         settings = get_settings()
         
         # Register a new user
-        AuthService.register_user(db, "newuser", "password123")
+        AuthService.register_user(db, "newuser", "New User", "password123")
         
         # Get the user from database and refresh
         new_user = db.query(User).filter(User.username == "newuser").first()
@@ -220,7 +220,7 @@ class TestUserRegistration:
         DailySelectionManager.clear_cache()
         
         # Register first user
-        AuthService.register_user(db, "user_first", "password123")
+        AuthService.register_user(db, "user_first", "User First", "password123")
         user1 = db.query(User).filter(User.username == "user_first").first()
         db.refresh(user1)
         
@@ -233,7 +233,7 @@ class TestUserRegistration:
             blocks1[block.block_catalog_id] = block.quantity
         
         # Register second user on same day
-        AuthService.register_user(db, "user_second", "password123")
+        AuthService.register_user(db, "user_second", "User Second", "password123")
         user2 = db.query(User).filter(User.username == "user_second").first()
         db.refresh(user2)
         

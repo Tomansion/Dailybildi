@@ -30,7 +30,7 @@
         >
           <div class="card-header">
             <div>
-              <h3>{{ world.user.username }}</h3>
+              <h3>{{ world.user.display_name }}</h3>
               <p class="world-date">{{ formatDate(world.created_at) }}</p>
             </div>
           </div>
@@ -243,6 +243,8 @@ h1 {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  align-items: self-start;
   gap: 0.75rem;
 }
 

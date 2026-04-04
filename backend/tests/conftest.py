@@ -48,6 +48,7 @@ def test_user(db):
     user = User(
         id="test-user-1",
         username="testuser",
+        display_name="Test User",
         password_hash="hashed_password"
     )
     db.add(user)

@@ -53,7 +53,7 @@ class TestDailyBlockDistribution:
         db = SessionLocal()
         
         # Create test user
-        user = User(username="test_user_1", password_hash="hashed_pass")
+        user = User(username="test_user_1", display_name="Test User 1", password_hash="hashed_pass")
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -97,7 +97,7 @@ class TestDailyBlockDistribution:
         db = SessionLocal()
         
         # Create test user
-        user = User(username="test_user_2", password_hash="hashed_pass")
+        user = User(username="test_user_2", display_name="Test User 2", password_hash="hashed_pass")
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -144,7 +144,7 @@ class TestDailyBlockDistribution:
         db = SessionLocal()
         
         # Create test user
-        user = User(username="test_user_3a", password_hash="hashed_pass")
+        user = User(username="test_user_3a", display_name="Test User 3a", password_hash="hashed_pass")
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -209,7 +209,7 @@ class TestDailyBlockDistribution:
         db = SessionLocal()
         
         # Create test user
-        user = User(username="test_user_3b", password_hash="hashed_pass")
+        user = User(username="test_user_3b", display_name="Test User 3b", password_hash="hashed_pass")
         db.add(user)
         db.commit()
         db.refresh(user)

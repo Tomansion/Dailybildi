@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 def register(request: UserRegisterRequest, db: Session = Depends(get_db)):
     """Register a new user"""
     try:
-        AuthService.register_user(db, request.username, request.password)
+        AuthService.register_user(db, request.username, request.display_name, request.password)
         # Log in the user after registration
         result = AuthService.login_user(db, request.username, request.password)
         return result

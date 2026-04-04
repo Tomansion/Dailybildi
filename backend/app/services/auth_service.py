@@ -9,7 +9,7 @@ class AuthService:
     """Authentication service for user registration and login (auth only)"""
 
     @staticmethod
-    def register_user(db: Session, username: str, password: str) -> dict:
+    def register_user(db: Session, username: str, display_name: str, password: str) -> dict:
         """Register a new user"""
         # Check if user already exists
         existing_user = db.query(User).filter(User.username == username).first()
@@ -20,6 +20,7 @@ class AuthService:
         hashed_password = hash_password(password)
         new_user = User(
             username=username,
+            display_name=display_name,
             password_hash=hashed_password,
             received_initial_blocks=False
         )
@@ -84,6 +85,7 @@ class AuthService:
             "user": {
                 "id": user.id,
                 "username": user.username,
+                "display_name": user.display_name,
                 "created_at": user.created_at,
                 "first_login_at": user.first_login_at,
                 "received_initial_blocks": user.received_initial_blocks

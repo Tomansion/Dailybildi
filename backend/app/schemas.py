@@ -5,6 +5,7 @@ from typing import Optional
 
 class UserRegisterRequest(BaseModel):
     username: str
+    display_name: str
     password: str
 
 
@@ -16,6 +17,7 @@ class UserLoginRequest(BaseModel):
 class UserResponse(BaseModel):
     id: str
     username: str
+    display_name: str
     created_at: datetime
     first_login_at: Optional[datetime] = None
     received_initial_blocks: bool
