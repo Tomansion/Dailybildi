@@ -23,8 +23,21 @@ async def lifespan(app: FastAPI):
     """Application lifecycle management"""
     # Startup
     logger.info("Starting up application...")
-    init_db()
-    start_scheduler()
+    try:
+        logger.info("Initializing database...")
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
+    
+    try:
+        logger.info("Starting scheduler...")
+        start_scheduler()
+        logger.info("Scheduler started successfully")
+    except Exception as e:
+        logger.error(f"Scheduler startup error: {e}")
+    
+    logger.info("Application startup complete")
     yield
     # Shutdown
     logger.info("Shutting down application...")
