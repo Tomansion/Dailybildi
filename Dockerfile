@@ -32,6 +32,9 @@ RUN apt-get update && apt-get install -y \
 COPY backend/ ./backend/
 COPY public/ ./public/
 
+# Copy frontend (including public assets like fonts, icons, logo.png)
+COPY frontend/ ./frontend/
+
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/frontend/dist ./backend/public/static/frontend
 

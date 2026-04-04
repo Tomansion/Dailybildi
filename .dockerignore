@@ -4,7 +4,6 @@ frontend/node_modules
 
 # Built artifacts (will rebuild in Docker)
 frontend/dist
-frontend/public
 
 # Python cache and virtual environments
 **/__pycache__/
