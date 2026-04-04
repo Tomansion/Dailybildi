@@ -1,20 +1,23 @@
 <template>
   <div v-if="hasSelectedBlock" class="block-actions">
-    <button @click="onRotate" class="action-btn" title="Rotate 90°">
+    <button @click="onRotate" class="action-btn" title="Rotate 90° (R)">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M1 4v6h6M23 20v-6h-6"/>
         <path d="M20.49 9A9 9 0 0 0 5.64 5.64M3.51 15A9 9 0 0 0 18.36 18.36"/>
       </svg>
+      <span class="shortcut">R</span>
     </button>
-    <button @click="onFlipHorizontal" class="action-btn" title="Flip Horizontal">
+    <button @click="onFlipHorizontal" class="action-btn" title="Flip Horizontal (H)">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 4h18v16H3zM10 9v6M14 9v6"/>
       </svg>
+      <span class="shortcut">H</span>
     </button>
-    <button @click="onFlipVertical" class="action-btn" title="Flip Vertical">
+    <button @click="onFlipVertical" class="action-btn" title="Flip Vertical (V)">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M4 3v18h16V3zM9 10h6M9 14h6"/>
       </svg>
+      <span class="shortcut">V</span>
     </button>
     <button @click="onDiscard" class="action-btn danger" title="Discard">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -69,6 +72,7 @@ const onDiscard = () => emit('discard')
   cursor: pointer;
   transition: all 0.2s;
   color: var(--text-primary);
+  position: relative;
 }
 
 .action-btn:hover {
@@ -85,5 +89,20 @@ const onDiscard = () => emit('discard')
 .icon {
   width: 30px;
   height: 30px;
+}
+
+.shortcut {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 0.625rem;
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+  padding: 2px 4px;
+  border-radius: 2px;
+  line-height: 1;
+  min-width: 16px;
+  text-align: center;
 }
 </style>

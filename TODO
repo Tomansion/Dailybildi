@@ -4,11 +4,12 @@
 ✔ Fix place click on existing block not placing the block @done(26-03-29 22:57)
 ✔ Migrate to React python @done(26-04-03 23:37)
 ✔ Newly placed block should be the one selected for rotation @done(26-04-03 23:38)
+✔ Increase blocks scale a bit to prevent antialiasing @done(26-04-04 01:26)
 
-☐ Increase blocks scale a bit to prevent antialiasing
+☐ Add keyboard controls to rotate blocks & flip
 ☐ Generate & display a preview of the world. Or canvas rendering ?
 ☐ Black & White style
 ☐ Implement square selection and movement of blocks
 ☐ On drag & wheel, rotate
-☐ Add keyboard controls to rotate blocks & flip
 ☐ Ctrl Z
+☐ Fix block being moved without token ?

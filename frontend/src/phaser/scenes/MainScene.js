@@ -152,6 +152,21 @@ export class MainScene extends Phaser.Scene {
       this.cancelBlockPlacement()
     })
 
+    // Handle F key - rotate selected block
+    this.input.keyboard.on('keydown-R', () => {
+      this.rotateSelectedBlock()
+    })
+
+    // Handle H key - flip horizontal
+    this.input.keyboard.on('keydown-H', () => {
+      this.flipSelectedBlockHorizontal()
+    })
+
+    // Handle V key - flip vertical
+    this.input.keyboard.on('keydown-V', () => {
+      this.flipSelectedBlockVertical()
+    })
+
     // Handle block drag
     this.input.on('drag', (pointer, gameObject) => {
       if (gameObject instanceof Block) {
@@ -219,12 +234,29 @@ export class MainScene extends Phaser.Scene {
       }
     })
 
-    // Update phantom block position on mouse move
+    // Update phantom block position on mouse move and handle block hover effects
     this.input.on('pointermove', (pointer) => {
       if (this.phantomBlock) {
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
         const snapped = GridManager.snapToGrid(worldPoint.x, worldPoint.y)
         this.phantomBlock.setPosition(snapped.x, snapped.y)
+      }
+
+      // Update hover state for blocks
+      const hitArea = this.input.hitTestPointer(pointer)
+      const hoveredBlock = hitArea.find(obj => obj instanceof Block)
+
+      for (const block of this.blocks.values()) {
+        if (block === this.selectedBlock) {
+          // Don't change selected block's opacity on hover
+          continue
+        }
+
+        if (block === hoveredBlock) {
+          block.setAlpha(0.7)
+        } else {
+          block.setAlpha(1)
+        }
       }
     })
   }
@@ -240,6 +272,7 @@ export class MainScene extends Phaser.Scene {
     if (!this.parallaxLayers) return
 
     const camera = this.cameras.main
+    const scale = this.universeConfig.worldImageScale
 
     // Use camera world view center for proper parallax alignment
     const cameraCenterX = camera.worldView.centerX
@@ -247,12 +280,30 @@ export class MainScene extends Phaser.Scene {
 
     for (const layer of this.parallaxLayers) {
       // distance 0 = stays fixed in world coords (no offset)
-      // distance 1 = stays fixed on screen (follows camera center)
-      // Position the layer based on camera center and distance factor
+      // distance < 0 = foreground (moves opposite - parallax effect)
+      // distance > 0 = background (moves with camera)
       layer.image.setPosition(
-        cameraCenterX * layer.distance,
-        cameraCenterY * layer.distance
+        Math.floor(cameraCenterX * layer.distance),
+        Math.floor(cameraCenterY * layer.distance)
       )
+      
+      // Scale based on distance and camera zoom
+      // distance 0 = fixed scale (no zoom effect)
+      // As camera zooms in, layers should shrink to maintain constant apparent size
+      // Far layers shrink less, near layers shrink more (for depth perception)
+      let finalScale
+      if (layer.distance === 0) {
+        // Distance 0 layers stay at fixed scale
+        finalScale = scale
+      } else {
+        // Counterbalance camera zoom: scale = 1 / zoom^exponent
+        // where exponent is based on distance
+        // distance ±1: exponent = 0.5 (shrink by 1/sqrt(zoom))
+        // distance 0: exponent = 1 (shrink by 1/zoom)
+        const zoomExponent = -(Math.abs(layer.distance) * 1.1)
+        finalScale = scale * Math.pow(camera.zoom, zoomExponent)
+      }
+      layer.image.setScale(finalScale)
     }
   }
 
@@ -357,10 +408,19 @@ export class MainScene extends Phaser.Scene {
   selectBlock(block) {
     if (this.selectedBlock) {
       this.selectedBlock.clearTint()
+      this.selectedBlock.setAlpha(1)
+      // Restore original depth
+      if (this.selectedBlock._originalDepth !== undefined) {
+        this.selectedBlock.setDepth(this.selectedBlock._originalDepth)
+      }
     }
 
     this.selectedBlock = block
-    this.selectedBlock.setTint(0x888888)
+    // Store original depth and set to high depth
+    this.selectedBlock._originalDepth = block.depth
+    this.selectedBlock.setDepth(10000)
+    this.selectedBlock.setAlpha(0.8)
+    this.selectedBlock.setTintFill(0x999933)
 
     if (this.onBlockSelectedCallback) {
       this.onBlockSelectedCallback(block.blockKey)
@@ -376,7 +436,12 @@ export class MainScene extends Phaser.Scene {
 
   deselectBlock() {
     if (this.selectedBlock) {
+      this.selectedBlock.setAlpha(1)
       this.selectedBlock.clearTint()
+      // Restore original depth
+      if (this.selectedBlock._originalDepth !== undefined) {
+        this.selectedBlock.setDepth(this.selectedBlock._originalDepth)
+      }
       this.selectedBlock = null
       
       if (this.onBlockDeselectedCallback) {

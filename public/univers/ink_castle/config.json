@@ -3,12 +3,12 @@
   "worldImageScale": 0.5,
   "blockSize": 40,
   "worldImages": [
-    { "path": "world/light.png", "distance": -0.2 },
+    { "path": "world/light.png", "distance": -0.5 },
     { "path": "world/ground.png", "distance": 0 },
-    { "path": "world/world1.png", "distance": 0.1 },
-    { "path": "world/world2.png", "distance": 0.2 },
-    { "path": "world/world3.png", "distance": 0.3 },
-    { "path": "world/clouds.png", "distance": 0.4 }
+    { "path": "world/world1.png", "distance": 0.2 },
+    { "path": "world/world2.png", "distance": 0.5 },
+    { "path": "world/world3.png", "distance": 0.9 },
+    { "path": "world/clouds.png", "distance": 1 }
   ],
   "blocks": [
     { "id": 0, "layer": 0, "rarity": 1, "imagePath": "tiles/tile_0_0_1.png" },
