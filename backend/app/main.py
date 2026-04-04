@@ -71,6 +71,26 @@ if public_path.exists():
     if default_tiles_path.exists():
         app.mount("/tiles", StaticFiles(directory=str(default_tiles_path)), name="tiles")
 
+# Mount frontend public assets (fonts, icons, logo, etc.) - MUST come before catch-all route
+frontend_public_path = Path(__file__).parent.parent.parent / "frontend" / "public"
+if frontend_public_path.exists():
+    # Mount fonts at the root
+    fonts_path = frontend_public_path / "fonts"
+    if fonts_path.exists():
+        app.mount("/fonts", StaticFiles(directory=str(fonts_path)), name="fonts")
+    
+    # Mount icons at the root
+    icons_path = frontend_public_path / "icons"
+    if icons_path.exists():
+        app.mount("/icons", StaticFiles(directory=str(icons_path)), name="icons")
+    
+    # Serve individual root-level assets (logo.png, etc.)
+    logo_path = frontend_public_path / "logo.png"
+    if logo_path.exists():
+        @app.get("/logo.png")
+        async def serve_logo():
+            return FileResponse(logo_path)
+
 # Mount frontend static files from dist directory
 frontend_dist_path = Path(__file__).parent.parent.parent / "backend" / "public" / "static" / "frontend"
 if frontend_dist_path.exists():
