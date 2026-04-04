@@ -7,15 +7,13 @@
     <div v-else-if="!world" class="error">World not found</div>
 
     <div v-else class="world-detail">
-      <div class="world-canvas-container">
         <div id="phaser-container-view" class="phaser-container"></div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getTileImageUrl } from '../services/urls'
@@ -51,9 +49,6 @@ const fetchWorld = async () => {
       const likesResponse = await api.get('/likes')
       isLiked.value = likesResponse.data.liked_world_ids.includes(route.params.worldId)
     }
-
-    // Initialize Phaser after world data is loaded
-    initializePhaserGame()
   } catch (err) {
     error.value = 'Failed to load world'
     console.error(err)
@@ -62,8 +57,21 @@ const fetchWorld = async () => {
   }
 }
 
-const initializePhaserGame = () => {
+// Watch for world changes to initialize Phaser when DOM is ready
+watch(world, async (newWorld) => {
+  if (newWorld) {
+    await nextTick()
+    // Give Vue a bit more time to render the DOM element
+    await new Promise(resolve => setTimeout(resolve, 50))
+    await initializePhaserGame()
+  }
+})
+
+const initializePhaserGame = async () => {
   if (!world.value) return
+
+  // Wait for DOM to be updated
+  await nextTick()
 
   // Initialize Phaser game
   phaserGame = new PhaserGameWrapper()
@@ -172,10 +180,14 @@ onBeforeUnmount(() => {
   max-width: 100%;
   margin: 0 auto;
   padding: 0 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: self-start;
 }
 
 .back-btn {
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   background-color: transparent;
   color: var(--text-primary);
   border: 1px solid var(--text-primary);
@@ -190,17 +202,12 @@ onBeforeUnmount(() => {
 }
 
 .world-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.world-canvas-container {
+  flex: 1;
+  margin-bottom: 1rem;
   width: 100%;
-  height: 600px;
   border: 1px solid var(--border);
   background-color: var(--surface);
-  border-radius: 0;
+  border-radius: 10px;
 }
 
 .phaser-container {

@@ -12,10 +12,18 @@ export class PhaserGameWrapper {
       return
     }
 
+    // Get the actual DOM element if a string ID is passed
+    const parentElement = typeof parent === 'string' ? document.getElementById(parent) : parent
+
+    if (!parentElement) {
+      console.error(`Parent element not found: ${parent}`)
+      return
+    }
+
     const config = {
       type: Phaser.AUTO,
       backgroundColor: 'transparent',
-      parent: parent,
+      parent: parentElement,
       scale: {
         mode: Phaser.Scale.RESIZE,
         width: '100%',
