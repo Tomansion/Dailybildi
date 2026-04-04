@@ -39,7 +39,7 @@ class AuthService:
             inventory = InventoryService.create_inventory(db, new_user.id)
             
             # Distribute 30 blocks for the starting universe
-            BlockService.distribute_blocks_to_user(
+            result = BlockService.distribute_blocks_to_user(
                 db,
                 inventory.id,
                 settings.UNIVERSE_ID
@@ -54,7 +54,7 @@ class AuthService:
             print(f"   Make sure public/univers/{settings.UNIVERSE_ID}/config.json exists with blocks")
         except Exception as e:
             # Log but don't fail registration if block distribution fails
-            print(f"Error distributing initial blocks for user {new_user.id}: {e}")
+            print(f"ERROR during registration block distribution for user {new_user.id}: {e}")
             import traceback
             traceback.print_exc()
 

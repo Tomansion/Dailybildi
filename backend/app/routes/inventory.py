@@ -7,6 +7,9 @@ from app.services.block_service import BlockService
 from app.services.block_loader import BlockLoader
 from app.utils.jwt import verify_token
 from app.models import World
+from app.config import get_settings
+
+settings = get_settings()
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -95,16 +98,16 @@ def get_inventory(db: Session = Depends(get_db), user_id: str = Depends(get_curr
 
 
 def _distribute_daily_blocks_if_needed(db: Session, user_id: str):
-    """Check and distribute daily blocks for all universes user has entered"""
+    """Check and distribute daily blocks for all universes user has entered or could enter"""
     try:
-        # Get all worlds for this user
+        # First, try to distribute for universes with worlds
         worlds = db.query(World).filter(World.user_id == user_id).all()
         
-        if not worlds:
-            return
+        universe_ids = set(world.universe_id for world in worlds) if worlds else set()
         
-        # Get unique universe IDs
-        universe_ids = set(world.universe_id for world in worlds)
+        # If no worlds, also try default universe
+        if not universe_ids:
+            universe_ids.add(settings.UNIVERSE_ID)
         
         # For each universe, check if we should distribute daily blocks
         for universe_id in universe_ids:
@@ -122,15 +125,13 @@ def _distribute_daily_blocks_if_needed(db: Session, user_id: str):
                 )
             except ValueError as e:
                 # Log but don't fail - continue with other universes
-                print(f"⚠️  Universe {universe_id}: {e}")
                 continue
             except Exception as e:
                 # Log but don't fail - continue with other universes
-                print(f"Error distributing blocks for universe {universe_id}: {e}")
                 continue
     except Exception as e:
-        print(f"Error in daily block distribution: {e}")
         # Don't raise - this is a non-critical operation
+        pass
 
 
 @router.post("/add-block")
