@@ -117,7 +117,8 @@ export default {
 
 <style scoped>
 .universes-page {
-  min-height: 100vh;
+  width: 100%;
+  height: 100%;
   background-color: var(--background);
 }
 

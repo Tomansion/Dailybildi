@@ -18,6 +18,7 @@
 
       <BlockActionButtons
         :hasSelectedBlock="hasSelectedBlock"
+        class="action-buttons"
         @rotate="handleRotate"
         @flip-horizontal="handleFlipHorizontal"
         @flip-vertical="handleFlipVertical"
@@ -305,17 +306,14 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .canvas-container {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--background);
   overflow: hidden;
 }
 
 .canvas-header {
   padding: 0.75rem;
-  background-color: var(--surface);
-  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -330,7 +328,6 @@ onBeforeUnmount(() => {
 .header-btn {
   background-color: var(--text-primary);
   color: var(--background);
-  border-color: var(--text-primary);
 }
 
 .header-btn:hover {
@@ -339,7 +336,7 @@ onBeforeUnmount(() => {
 
 .phaser-container.drag-over {
   background-color: rgba(0, 0, 0, 0.05);
-  border: 2px dashed var(--border);
+  overflow: hidden;
 }
 
 .canvas-content {
@@ -354,6 +351,18 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   background-color: var(--background);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin: 10px;
+}
+
+.action-buttons {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 0.5rem;
 }
 
 .loading,

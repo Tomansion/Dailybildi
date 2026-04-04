@@ -46,11 +46,25 @@ const logout = () => {
 }
 </script>
 
+<style>
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+</style>
+
 <style scoped>
 .navbar {
   background-color: var(--background);
   padding: 1rem 0;
-  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.5rem 0;
+  }
 }
 
 .nav-container {
@@ -84,12 +98,30 @@ const logout = () => {
   opacity: 1;
 }
 
+@media (max-width: 768px) {
+  .nav-brand {
+    gap: 0;
+    font-size: 0;
+  }
+  
+  .nav-logo {
+    height: 28px;
+    width: 28px;
+  }
+}
+
 .nav-menu {
   list-style: none;
   display: flex;
   gap: 2rem;
   margin: 0;
   padding: 0;
+}
+
+@media (max-width: 768px) {
+  .nav-menu {
+    gap: 0.75rem;
+  }
 }
 
 .nav-item {
@@ -110,6 +142,13 @@ const logout = () => {
   opacity: 0.7;
 }
 
+@media (max-width: 768px) {
+  .nav-link {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
 .nav-logout {
   background-color: transparent;
   color: var(--text-primary);
@@ -123,8 +162,18 @@ const logout = () => {
   color: var(--background);
 }
 
+@media (max-width: 768px) {
+  .nav-logout {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
 .main-content {
   flex: 1;
   background-color: var(--background);
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 </style>

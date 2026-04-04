@@ -8,6 +8,8 @@
 ✔ Add keyboard controls to rotate blocks & flip @done(26-04-04 10:23)
 ✔ Black & White style @done(26-04-04 11:16)
 
+☐ Display demo image
+☐ Make nice bg animation in hte login page
 ☐ Add user display name
 ☐ Generate & display a preview of the world. Or canvas rendering ?
 ☐ Implement square selection and movement of blocks

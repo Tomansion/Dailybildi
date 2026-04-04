@@ -1,7 +1,7 @@
 <template>
   <div class="auth-container">
     <BaseCard class="auth-card">
-      <h1>Login</h1>
+      <h2>Login</h2>
       <form @submit.prevent="handleLogin" class="auth-form">
         <BaseInput
           v-model="form.username"

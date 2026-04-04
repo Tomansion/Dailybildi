@@ -125,8 +125,6 @@ onBeforeUnmount(() => {
 .inventory-container {
   width: 16rem;
   height: 100%;
-  background-color: var(--surface);
-  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   pointer-events: auto;
@@ -134,7 +132,6 @@ onBeforeUnmount(() => {
 
 .inventory-header {
   padding: 0.75rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .inventory-header h3 {
@@ -220,7 +217,6 @@ onBeforeUnmount(() => {
 
 .inventory-footer {
   padding: 0.75rem;
-  border-top: 1px solid var(--border);
 }
 
 .timer-label {
