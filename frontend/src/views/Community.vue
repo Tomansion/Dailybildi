@@ -1,46 +1,53 @@
 <template>
   <div class="community-container">
-    <div class="community-header">
-      <h1>Community</h1>
-      <div class="sort-controls">
-        <label>Sort by:</label>
-        <select v-model="sortBy" @change="fetchWorlds">
-          <option value="recent">Recent</option>
-          <option value="likes">Most Liked</option>
-        </select>
-      </div>
-    </div>
-
-    <div v-if="loading" class="loading">Loading worlds...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-
-    <div class="worlds-grid">
-      <div
-        v-for="world in worlds"
-        :key="world.id"
-        class="world-card card"
-        @click="viewWorld(world.id)"
-      >
-        <div class="world-preview">
-          <div class="preview-placeholder">{{ world.user.username }}'s World</div>
+    <div class="container">
+      <div class="community-header">
+        <div>
+          <h1>Community</h1>
+          <p class="header-subtitle">Explore and like other players' creations</p>
         </div>
-        <div class="world-info">
+        <div class="sort-controls">
+          <label for="sort">Sort by:</label>
+          <select id="sort" v-model="sortBy" @change="fetchWorlds">
+            <option value="recent">Recent</option>
+            <option value="likes">Most Liked</option>
+          </select>
+        </div>
+      </div>
+
+      <div v-if="loading" class="loading">Loading worlds...</div>
+      <div v-else-if="error" class="error-message">{{ error }}</div>
+      <div v-else-if="worlds.length === 0" class="empty-state">
+        No worlds found yet. Be the first to create one!
+      </div>
+
+      <div v-else class="worlds-grid">
+        <BaseCard
+          v-for="world in worlds"
+          :key="world.id"
+          class="world-card"
+          @click="viewWorld(world.id)"
+        >
           <h3>{{ world.user.username }}</h3>
           <p class="world-date">{{ formatDate(world.created_at) }}</p>
           <div class="world-stats">
-            <span class="like-count">❤️ {{ world.like_count }}</span>
-            <span class="block-count">🧱 {{ world.placed_blocks.length }}</span>
+            <span class="stat">
+              <img src="/icons/heart.svg" alt="likes" class="stat-icon" />
+              {{ world.like_count }}
+            </span>
+            <span class="stat">
+              <img src="/icons/bricks.svg" alt="placed blocks" class="stat-icon" />
+              {{ world.placed_blocks.length }}
+            </span>
           </div>
-        </div>
+        </BaseCard>
       </div>
-    </div>
 
-    <div v-if="!loading && worlds.length === 0" class="no-worlds">
-      No worlds found yet. Be the first to create one!
-    </div>
-
-    <div v-if="hasMore" class="load-more">
-      <button @click="loadMore" :disabled="loading">Load More</button>
+      <div v-if="!loading && hasMore" class="load-more-container">
+        <BaseButton @click="loadMore" :disabled="loading">
+          Load More
+        </BaseButton>
+      </div>
     </div>
   </div>
 </template>
@@ -49,6 +56,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../services/api'
+import BaseCard from '../components/base/BaseCard.vue'
+import BaseButton from '../components/base/BaseButton.vue'
 
 const router = useRouter()
 
@@ -125,39 +134,62 @@ onMounted(() => {
 
 <style scoped>
 .community-container {
+  background-color: var(--background);
+}
+
+.container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 1rem;
+}
+
+h1 {
+  margin-bottom: 0.25rem;
+  letter-spacing: -1.5px;
+}
+
+.header-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
 }
 
 .community-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2rem;
-}
-
-.community-header h1 {
-  margin: 0;
-  color: var(--text-primary);
+  gap: 2rem;
 }
 
 .sort-controls {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  min-width: 200px;
 }
 
 .sort-controls label {
   color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .sort-controls select {
-  background-color: var(--surface);
+  background-color: var(--background);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 0;
   padding: 0.5rem;
   cursor: pointer;
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.sort-controls select:focus {
+  outline: none;
+  border-color: var(--text-primary);
 }
 
 .worlds-grid {
@@ -169,84 +201,71 @@ onMounted(() => {
 
 .world-card {
   cursor: pointer;
-  transition: all 0.3s;
-  overflow: hidden;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .world-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  border-color: var(--primary);
+  border-color: var(--text-primary);
+  transform: translateY(-2px);
 }
 
-.world-preview {
-  width: 100%;
-  aspect-ratio: 1;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  border-radius: 0.375rem;
-  overflow: hidden;
-}
-
-.preview-placeholder {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  text-align: center;
-  padding: 1rem;
-}
-
-.world-info h3 {
-  margin: 0 0 0.5rem 0;
-  color: var(--text-primary);
-  font-size: 1.125rem;
+.world-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: -0.5px;
 }
 
 .world-date {
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 .world-stats {
   display: flex;
   gap: 1rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.load-more {
+.stat {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stat-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.load-more-container {
   text-align: center;
   margin: 2rem 0;
 }
 
-.load-more button {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-}
-
-.no-worlds {
+.empty-state,
+.error-message,
+.loading {
   text-align: center;
-  color: var(--text-secondary);
-  padding: 3rem 1rem;
+  padding: 3rem;
+  border: 1px solid var(--border);
   background-color: var(--surface);
-  border-radius: 0.5rem;
-  border: 1px dashed var(--border);
+  border-radius: 0;
 }
 
-.loading,
-.error {
-  text-align: center;
-  padding: 2rem;
+.empty-state,
+.loading {
   color: var(--text-secondary);
 }
 
-.error {
-  color: var(--danger);
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid var(--danger);
-  border-radius: 0.5rem;
+.error-message {
+  color: var(--error);
+  border-color: var(--error);
 }
 </style>

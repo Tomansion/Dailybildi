@@ -2,16 +2,12 @@
   <div class="inventory-container" @pointerdown.stop @click.stop>
     <div class="inventory-header">
       <h3>Inventory</h3>
-      <p class="block-count">
-        {{ totalBlocks }} {{ totalBlocks === 1 ? "block" : "blocks" }}
-      </p>
+      <p class="block-count">{{ totalBlocks }} {{ totalBlocks === 1 ? "block" : "blocks" }}</p>
     </div>
 
     <div class="scroll-area">
       <div class="blocks-grid">
-        <div v-if="blocks.length === 0" class="no-blocks">
-          No blocks available
-        </div>
+        <div v-if="blocks.length === 0" class="no-blocks">No blocks available</div>
         <div
           v-for="block in blocks"
           :key="block.blockCatalogKey"
@@ -23,14 +19,9 @@
           @dragend="handleDragEnd"
         >
           <div class="block-image">
-            <img
-              :src="block.blockData.imagePath"
-              :alt="block.blockCatalogKey"
-            />
+            <img :src="block.blockData.imagePath" :alt="block.blockCatalogKey" />
           </div>
-          <div class="block-info">
-            <p class="block-quantity">{{ block.quantity }}</p>
-          </div>
+          <div class="block-quantity">{{ block.quantity }}</div>
         </div>
       </div>
     </div>
@@ -106,7 +97,6 @@ onMounted(() => {
 });
 
 const handleDragStart = (event, block) => {
-  // Store block data in dataTransfer
   event.dataTransfer.effectAllowed = "copy";
   event.dataTransfer.setData(
     "application/json",
@@ -135,7 +125,7 @@ onBeforeUnmount(() => {
 .inventory-container {
   width: 16rem;
   height: 100%;
-  background-color: var(--card);
+  background-color: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -143,20 +133,21 @@ onBeforeUnmount(() => {
 }
 
 .inventory-header {
-  padding: 1rem;
+  padding: 0.75rem;
   border-bottom: 1px solid var(--border);
 }
 
 .inventory-header h3 {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
 .block-count {
   margin: 0.25rem 0 0 0;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 
@@ -166,10 +157,10 @@ onBeforeUnmount(() => {
 }
 
 .blocks-grid {
-  padding: 0.75rem;
+  padding: 0.5rem;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .no-blocks {
@@ -177,35 +168,34 @@ onBeforeUnmount(() => {
   padding: 2rem 0;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 .block-card {
   position: relative;
   background-color: var(--background);
-  border: 2px solid transparent;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 0.25rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .block-card:hover {
-  border-color: var(--primary);
+  border-color: var(--text-primary);
   transform: scale(1.05);
 }
 
 .block-card.selected {
-  border-color: var(--primary);
-  background-color: rgba(59, 130, 246, 0.1);
+  border-color: var(--text-primary);
+  background-color: var(--surface);
 }
 
 .block-image {
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: 0.375rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   background-color: var(--border);
 }
 
@@ -215,27 +205,17 @@ onBeforeUnmount(() => {
   object-fit: contain;
 }
 
-.block-name {
-  margin: 0;
-  color: var(--text-primary);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.8rem;
-}
-
 .block-quantity {
   position: absolute;
-  top: 0rem;
-  right: 0rem;
+  top: 0.25rem;
+  right: 0.25rem;
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   background-color: rgba(0, 0, 0, 0.5);
   color: white;
   padding: 0.1rem 0.3rem;
-  border-radius: 0.25rem;
+  border-radius: 0;
 }
 
 .inventory-footer {
@@ -245,13 +225,13 @@ onBeforeUnmount(() => {
 
 .timer-label {
   margin: 0 0 0.25rem 0;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
 }
 
 .timer {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   font-family: monospace;
   color: var(--text-primary);

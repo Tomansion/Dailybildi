@@ -5,10 +5,11 @@
 ✔ Migrate to React python @done(26-04-03 23:37)
 ✔ Newly placed block should be the one selected for rotation @done(26-04-03 23:38)
 ✔ Increase blocks scale a bit to prevent antialiasing @done(26-04-04 01:26)
+✔ Add keyboard controls to rotate blocks & flip @done(26-04-04 10:23)
+✔ Black & White style @done(26-04-04 11:16)
 
-☐ Add keyboard controls to rotate blocks & flip
+☐ Add user display name
 ☐ Generate & display a preview of the world. Or canvas rendering ?
-☐ Black & White style
 ☐ Implement square selection and movement of blocks
 ☐ On drag & wheel, rotate
 ☐ Ctrl Z

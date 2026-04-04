@@ -1,63 +1,61 @@
 <template>
   <div class="auth-container">
-    <div class="auth-card card">
+    <BaseCard class="auth-card">
       <h1>Register</h1>
-      <form @submit.prevent="handleRegister">
-        <div class="form-group">
-          <label for="username" class="form-label">Username</label>
-          <input
-            id="username"
-            v-model="form.username"
-            type="text"
-            required
-            placeholder="Choose a username"
-          />
-        </div>
+      <form @submit.prevent="handleRegister" class="auth-form">
+        <BaseInput
+          v-model="form.username"
+          label="Username"
+          type="text"
+          placeholder="Choose a username"
+          required
+        />
 
-        <div class="form-group">
-          <label for="password" class="form-label">Password</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            required
-            placeholder="Choose a password"
-          />
-        </div>
+        <BaseInput
+          v-model="form.password"
+          label="Password"
+          type="password"
+          placeholder="Choose a password"
+          required
+        />
 
-        <div class="form-group">
-          <label for="confirmPassword" class="form-label">Confirm Password</label>
-          <input
-            id="confirmPassword"
-            v-model="form.confirmPassword"
-            type="password"
-            required
-            placeholder="Confirm your password"
-          />
-          <div v-if="form.password !== form.confirmPassword" class="error">
-            Passwords do not match
-          </div>
-        </div>
+        <BaseInput
+          v-model="form.confirmPassword"
+          label="Confirm Password"
+          type="password"
+          placeholder="Confirm your password"
+          required
+          :error="passwordMismatch ? 'Passwords do not match' : null"
+        />
 
-        <button type="submit" :disabled="loading || form.password !== form.confirmPassword">
+        <div v-if="error" class="form-error">{{ error }}</div>
+
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :disabled="loading || passwordMismatch"
+          class="submit-button"
+        >
           {{ loading ? 'Registering...' : 'Register' }}
-        </button>
-
-        <div v-if="error" class="error">{{ error }}</div>
+        </BaseButton>
       </form>
 
       <p class="auth-footer">
-        Already have an account? <router-link to="/login">Login</router-link>
+        Already have an account?
+        <router-link to="/login" class="auth-link">Login here</router-link>
       </p>
-    </div>
+    </BaseCard>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import BaseCard from '../components/base/BaseCard.vue'
+import BaseInput from '../components/base/BaseInput.vue'
+import BaseButton from '../components/base/BaseButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -70,6 +68,10 @@ const form = ref({
 
 const loading = ref(false)
 const error = ref(null)
+
+const passwordMismatch = computed(() => 
+  form.value.password && form.value.confirmPassword && form.value.password !== form.value.confirmPassword
+)
 
 const handleRegister = async () => {
   loading.value = true
@@ -107,20 +109,41 @@ const handleRegister = async () => {
 .auth-card h1 {
   margin-bottom: 2rem;
   text-align: center;
+  font-size: 1.75rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.form-error {
+  color: var(--error);
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  border: 1px solid var(--error);
+  border-radius: 0;
+  background-color: rgba(211, 47, 47, 0.05);
+}
+
+.submit-button {
+  width: 100%;
 }
 
 .auth-footer {
   text-align: center;
-  margin-top: 2rem;
   color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.auth-footer a {
-  color: var(--primary);
+.auth-link {
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--text-primary);
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.auth-link:hover {
+  opacity: 0.7;
 }
 </style>

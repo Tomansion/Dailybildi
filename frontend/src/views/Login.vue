@@ -1,41 +1,41 @@
 <template>
   <div class="auth-container">
-    <div class="auth-card card">
+    <BaseCard class="auth-card">
       <h1>Login</h1>
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label for="username" class="form-label">Username</label>
-          <input
-            id="username"
-            v-model="form.username"
-            type="text"
-            required
-            placeholder="Enter your username"
-          />
-        </div>
+      <form @submit.prevent="handleLogin" class="auth-form">
+        <BaseInput
+          v-model="form.username"
+          label="Username"
+          type="text"
+          placeholder="Enter your username"
+          required
+        />
 
-        <div class="form-group">
-          <label for="password" class="form-label">Password</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            required
-            placeholder="Enter your password"
-          />
-        </div>
+        <BaseInput
+          v-model="form.password"
+          label="Password"
+          type="password"
+          placeholder="Enter your password"
+          required
+        />
 
-        <button type="submit" :disabled="loading">
+        <div v-if="error" class="form-error">{{ error }}</div>
+
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :disabled="loading"
+          class="submit-button"
+        >
           {{ loading ? 'Logging in...' : 'Login' }}
-        </button>
-
-        <div v-if="error" class="error">{{ error }}</div>
+        </BaseButton>
       </form>
 
       <p class="auth-footer">
-        Don't have an account? <router-link to="/register">Register</router-link>
+        Don't have an account?
+        <router-link to="/register" class="auth-link">Register here</router-link>
       </p>
-    </div>
+    </BaseCard>
   </div>
 </template>
 
@@ -44,6 +44,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import BaseCard from '../components/base/BaseCard.vue'
+import BaseInput from '../components/base/BaseInput.vue'
+import BaseButton from '../components/base/BaseButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -92,20 +95,41 @@ const handleLogin = async () => {
 .auth-card h1 {
   margin-bottom: 2rem;
   text-align: center;
+  font-size: 1.75rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.form-error {
+  color: var(--error);
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  border: 1px solid var(--error);
+  border-radius: 0;
+  background-color: rgba(211, 47, 47, 0.05);
+}
+
+.submit-button {
+  width: 100%;
 }
 
 .auth-footer {
   text-align: center;
-  margin-top: 2rem;
   color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.auth-footer a {
-  color: var(--primary);
+.auth-link {
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--text-primary);
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.auth-link:hover {
+  opacity: 0.7;
 }
 </style>

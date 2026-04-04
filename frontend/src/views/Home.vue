@@ -1,41 +1,51 @@
 <template>
   <div class="home-container">
-    <div class="hero">
+    <section class="hero">
       <h1>Dailybildi</h1>
-      <p>A daily drawing experience where you build with limited blocks</p>
+      <p class="hero-subtitle">A daily drawing experience where you build with limited blocks</p>
       <div class="hero-buttons" v-if="!isAuthenticated">
-        <router-link to="/register" class="btn btn-primary">Get Started</router-link>
-        <router-link to="/login" class="btn btn-secondary">Login</router-link>
+        <router-link to="/register" class="button-link">Get Started</router-link>
+        <router-link to="/login" class="button-link secondary">Login</router-link>
       </div>
       <div class="hero-buttons" v-else>
-        <router-link to="/canvas" class="btn btn-primary">Go to Canvas</router-link>
-        <router-link to="/community" class="btn btn-secondary">View Community</router-link>
+        <router-link to="/community" class="button-link secondary">View Community</router-link>
       </div>
-    </div>
+    </section>
 
-    <div class="features">
-      <div class="feature card">
-        <h3>Daily Blocks</h3>
-        <p>Get 10 random blocks every day at 00:00 UTC</p>
-      </div>
-      <div class="feature card">
-        <h3>Infinite Canvas</h3>
-        <p>Build your creation on an infinite grid with layers and transformations</p>
-      </div>
-      <div class="feature card">
-        <h3>Community</h3>
-        <p>Share your creations and like other players' artwork</p>
-      </div>
-    </div>
+    <section class="features">
+      <BaseCard v-for="feature in features" :key="feature.id" class="feature-card">
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.description }}</p>
+      </BaseCard>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import BaseCard from '../components/base/BaseCard.vue'
 
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+const features = [
+  {
+    id: 1,
+    title: 'Daily Blocks',
+    description: 'Get 10 random blocks every day at 00:00 UTC'
+  },
+  {
+    id: 2,
+    title: 'Infinite Canvas',
+    description: 'Build your creation on an infinite grid with layers and transformations'
+  },
+  {
+    id: 3,
+    title: 'Community',
+    description: 'Share your creations and like other players\' artwork'
+  }
+]
 </script>
 
 <style scoped>
@@ -47,21 +57,19 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 .hero {
   text-align: center;
   padding: 4rem 2rem;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border-radius: 1rem;
   margin-bottom: 4rem;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
 }
 
 .hero h1 {
   font-size: 3rem;
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: -2px;
 }
 
-.hero p {
-  font-size: 1.25rem;
+.hero-subtitle {
+  font-size: 1.1rem;
   color: var(--text-secondary);
   margin-bottom: 2rem;
 }
@@ -73,56 +81,53 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
   flex-wrap: wrap;
 }
 
-.btn {
+.button-link {
   padding: 0.75rem 1.5rem;
-  border-radius: 0.375rem;
   text-decoration: none;
   font-weight: 500;
-  transition: all 0.3s;
-  border: none;
-  cursor: pointer;
+  border: 1px solid var(--text-primary);
+  background-color: var(--text-primary);
+  color: var(--background);
   display: inline-block;
+  transition: all 0.2s;
+  border-radius: 0;
+  cursor: pointer;
 }
 
-.btn-primary {
-  background-color: var(--primary);
-  color: white;
+.button-link:hover {
+  opacity: 0.8;
+  background-color: var(--text-secondary);
+  border-color: var(--text-secondary);
 }
 
-.btn-primary:hover {
-  background-color: var(--primary-dark);
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  background-color: var(--surface);
+.button-link.secondary {
+  background-color: transparent;
   color: var(--text-primary);
-  border: 1px solid var(--border);
 }
 
-.btn-secondary:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+.button-link.secondary:hover {
+  background-color: var(--text-primary);
+  color: var(--background);
 }
 
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 4rem;
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
-.feature {
-  text-align: center;
-  padding: 2rem;
+.feature-card {
+  padding: 1.5rem;
 }
 
-.feature h3 {
-  margin-bottom: 1rem;
-  color: var(--primary);
+.feature-card h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
 }
 
-.feature p {
-  color: var(--text-secondary);
+.feature-card p {
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 </style>

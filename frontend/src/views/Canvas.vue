@@ -313,7 +313,7 @@ onBeforeUnmount(() => {
 }
 
 .canvas-header {
-  padding: 1rem;
+  padding: 0.75rem;
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -324,20 +324,22 @@ onBeforeUnmount(() => {
 .canvas-header h2 {
   margin: 0;
   color: var(--text-primary);
+  font-size: 1.1rem;
 }
 
 .header-btn {
-  background-color: var(--primary);
-  color: white;
+  background-color: var(--text-primary);
+  color: var(--background);
+  border-color: var(--text-primary);
 }
 
 .header-btn:hover {
-  background-color: var(--primary-dark);
+  opacity: 0.8;
 }
 
 .phaser-container.drag-over {
-  background-color: rgba(59, 130, 246, 0.1);
-  border: 2px dashed var(--primary);
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 2px dashed var(--border);
 }
 
 .canvas-content {
@@ -351,6 +353,7 @@ onBeforeUnmount(() => {
   flex: 1;
   position: relative;
   overflow: hidden;
+  background-color: var(--background);
 }
 
 .loading,
@@ -361,9 +364,10 @@ onBeforeUnmount(() => {
   transform: translate(-50%, -50%);
   padding: 2rem;
   background-color: var(--surface);
-  border-radius: 0.5rem;
   border: 1px solid var(--border);
+  border-radius: 0;
   z-index: 500;
+  text-align: center;
 }
 
 .loading {
@@ -371,6 +375,7 @@ onBeforeUnmount(() => {
 }
 
 .error-message {
-  color: var(--danger);
+  color: var(--error);
+  border-color: var(--error);
 }
 </style>

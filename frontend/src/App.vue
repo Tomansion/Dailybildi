@@ -2,7 +2,9 @@
   <div id="app">
     <nav class="navbar">
       <div class="nav-container">
-        <router-link to="/" class="nav-brand">Dailybildi</router-link>
+          <router-link to="/" class="nav-brand">
+            <img src="/icons/logo.svg" alt="Dailybildi" class="nav-logo" />
+            Dailybildi</router-link>
         <ul class="nav-menu">
           <li v-if="!isAuthenticated" class="nav-item">
             <router-link to="/login" class="nav-link">Login</router-link>
@@ -14,13 +16,10 @@
             <router-link to="/" class="nav-link">Universes</router-link>
           </li>
           <li v-if="isAuthenticated" class="nav-item">
-            <router-link to="/canvas" class="nav-link">Canvas</router-link>
-          </li>
-          <li v-if="isAuthenticated" class="nav-item">
             <router-link to="/community" class="nav-link">Community</router-link>
           </li>
           <li v-if="isAuthenticated" class="nav-item">
-            <button @click="logout" class="nav-link logout-btn">Logout</button>
+            <button @click="logout" class="nav-logout">Logout</button>
           </li>
         </ul>
       </div>
@@ -49,9 +48,9 @@ const logout = () => {
 
 <style scoped>
 .navbar {
-  background-color: #1a1a1a;
+  background-color: var(--background);
   padding: 1rem 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--border);
 }
 
 .nav-container {
@@ -63,11 +62,26 @@ const logout = () => {
   align-items: center;
 }
 
+.nav-logo {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+}
+
 .nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-size: 1.5rem;
-  font-weight: bold;
-  color: #fff;
+  font-weight: 700;
   text-decoration: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: -1px;
+}
+
+.nav-brand:hover {
+  opacity: 1;
 }
 
 .nav-menu {
@@ -84,25 +98,33 @@ const logout = () => {
 }
 
 .nav-link {
-  color: #fff;
+  color: var(--text-primary);
   text-decoration: none;
-  transition: color 0.3s;
+  border: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+  padding: 0.25rem 0;
 }
 
 .nav-link:hover {
-  color: #64748b;
+  opacity: 0.7;
 }
 
-.logout-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-  font-size: inherit;
+.nav-logout {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--text-primary);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.nav-logout:hover {
+  background-color: var(--text-primary);
+  color: var(--background);
 }
 
 .main-content {
-  padding: 2rem 1rem;
+  flex: 1;
+  background-color: var(--background);
 }
 </style>

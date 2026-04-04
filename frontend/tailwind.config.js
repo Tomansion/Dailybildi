@@ -5,17 +5,18 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Tektur', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
       colors: {
-        primary: '#3b82f6',
-        'primary-dark': '#1e40af',
-        secondary: '#64748b',
-        danger: '#ef4444',
-        success: '#10b981',
-        background: '#0f172a',
-        surface: '#1e293b',
-        border: '#334155',
-        'text-primary': '#f1f5f9',
-        'text-secondary': '#cbd5e1',
+        background: '#ffffff',
+        surface: '#f5f5f5',
+        border: '#e0e0e0',
+        'text-primary': '#000000',
+        'text-secondary': '#666666',
+        error: '#d32f2f',
+        success: '#388e3c',
+        disabled: '#cccccc',
       }
     },
   },
