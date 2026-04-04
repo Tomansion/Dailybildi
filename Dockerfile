@@ -1,77 +1,59 @@
-# Multi-stage build for DailyBildi
+# Multi-stage build for Dailybildi
 
-# Stage 1: Build =====================================================
-FROM node:22-alpine AS builder
+# Stage 1: Build frontend
+FROM node:18-alpine AS frontend-builder
 
-WORKDIR /app
+WORKDIR /app/frontend
 
-# Copy package files and prisma schema
-COPY package*.json ./
-COPY prisma ./prisma
+# Copy frontend files
+COPY frontend/package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
-# Copy source code
-COPY . .
+# Copy frontend source
+COPY frontend/ .
 
-# Generate Prisma client
-RUN npm run postinstall
-
-# Build Next.js application
+# Build frontend with API URL pointing to root (backend on same origin)
+ENV VITE_API_URL=/api
 RUN npm run build
 
-# Stage 2: Runtime =====================================================
-FROM node:22-alpine
+
+# Stage 2: Build and run backend with frontend
+FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy package files and prisma schema
-COPY package*.json ./
-COPY prisma ./prisma
+# Copy backend files
+COPY backend/ ./backend/
+COPY public/ ./public/
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Copy built frontend from previous stage
+COPY --from=frontend-builder /app/frontend/dist ./backend/public/static/frontend
 
-# Copy built application and assets
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/src ./src
+# Set working directory for backend
+WORKDIR /app/backend
 
-# Copy docker entrypoint script
-COPY docker-entrypoint.sh ./
+# Install Python dependencies
+RUN pip install --no-cache-dir -e .
 
-# Create app user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+# Create data directory for database
+RUN mkdir -p data
 
-# Set up data directory with proper permissions for nextjs user
-RUN mkdir -p /app/data && \
-    chown -R nextjs:nodejs /app/data && \
-    chmod 755 /app/data && \
-    chmod +x /app/docker-entrypoint.sh
-
-USER nextjs
+# Expose port
+EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
-# Expose port
-EXPOSE 3000
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV FRONTEND_URL=http://localhost:3000
 
-# Volume for database persistence
-VOLUME ["/app/data"]
-
-# Environment defaults
-ENV NODE_ENV=production
-ENV NEXTAUTH_URL=http://localhost:3000
-ENV DATABASE_URL=file:/app/data/dev.db
-ENV NEXTAUTH_SECRET=change-me-in-production-please
-
-# Start server with migrations via entrypoint
-CMD ["/app/docker-entrypoint.sh"]
+# Default command
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

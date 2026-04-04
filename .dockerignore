@@ -1,15 +1,55 @@
-node_modules
-.next
+# Node modules
+**/node_modules/
+frontend/node_modules
+
+# Built artifacts (will rebuild in Docker)
+frontend/dist
+frontend/public
+
+# Python cache and virtual environments
+**/__pycache__/
+**/.pytest_cache/
+backend/venv/
+backend/.venv/
+**/*.egg-info/
+backend/dist
+
+# Coverage reports and files
+htmlcov/
+**/htmlcov/
+.coverage
+.coverage.*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
 .env.local
 .env*.local
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+
+# OS and IDE
 .DS_Store
 *.pem
 .vscode
 .idea
-coverage
+
+# Build artifacts
+.next
 .cache
 dist
-*.log
+build
+
+# Design files
+*.xcf
+
+# Config files
+*.xml
+coverage.xml

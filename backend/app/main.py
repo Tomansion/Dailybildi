@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
@@ -40,7 +41,7 @@ app = FastAPI(
 # Setup CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,10 +67,26 @@ if public_path.exists():
     if default_tiles_path.exists():
         app.mount("/tiles", StaticFiles(directory=str(default_tiles_path)), name="tiles")
 
+# Mount frontend static files from dist directory
+frontend_dist_path = Path(__file__).parent.parent.parent / "backend" / "public" / "static" / "frontend"
+if frontend_dist_path.exists():
+    # This serves all assets (CSS, JS, images, etc.) from the frontend dist folder
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist_path / "assets")), name="assets")
+    # Also mount favicon if it exists
+    if (frontend_dist_path / "favicon.ico").exists():
+        @app.get("/favicon.ico")
+        async def favicon():
+            return FileResponse(frontend_dist_path / "favicon.ico")
+
+
 
 @app.get("/")
-def root():
-    """Root endpoint"""
+async def root():
+    """Root endpoint - serve frontend SPA"""
+    frontend_index = Path(__file__).parent.parent.parent / "backend" / "public" / "static" / "frontend" / "index.html"
+    if frontend_index.exists():
+        return FileResponse(frontend_index)
+    # Fallback API info if frontend not built
     return {
         "message": "Dailybildi API",
         "version": settings.API_VERSION,
@@ -81,6 +98,16 @@ def root():
 def health_check():
     """Health check endpoint"""
     return {"status": "ok"}
+
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    """Serve SPA frontend for all unmatched routes"""
+    frontend_index = Path(__file__).parent.parent.parent / "backend" / "public" / "static" / "frontend" / "index.html"
+    if frontend_index.exists():
+        return FileResponse(frontend_index)
+    # Fallback if frontend not built
+    return {"message": "Frontend not found. Please build the frontend first."}
 
 
 if __name__ == "__main__":

@@ -76,6 +76,32 @@ Build block by block as days go by.
    - Frontend: http://localhost:3000
    - API Documentation: http://localhost:8000/docs
 
+### Docker Setup (Single Container)
+
+This project includes a Dockerfile that builds and runs both frontend and backend in a single container.
+
+**Build the Docker image:**
+
+```bash
+docker build -t dailybildi .
+```
+
+**Run the container:**
+
+```bash
+docker run -p 8000:8000 dailybildi
+```
+
+**With environment variables (.env file):**
+
+```bash
+docker run -p 8000:8000 --env-file backend/.env dailybildi
+```
+
+**Access the application:**
+- Frontend & API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
 ## Specifications
 
 **V1**:
