@@ -13,21 +13,22 @@
 ✔ Make nice bg animation in hte login page @done(26-04-04 14:08)
 ✔ Add user display name @done(26-04-04 14:42)
 ✔ Volume @done(26-04-05 18:21)
+✔ Fix test deleting entire db @done(26-04-05 18:58)
+✔ Fix likes @done(26-04-05 19:03)
+✔ Add github link @done(26-04-05 19:15)
+✔ Display username & version @done(26-04-05 19:15)
 
-☐ Fix test deleting entire db
-☐ Fix likes
-☐ Add github link
+☐ Fix block can be placed twice
+☐ Add universe creation guide
+☐ Fix url/community in not found
+☐ Add universe card (color, font, icon, bg)
+☐ Tutorial
 ☐ Improve Readme
 ☐ Add to portfolio
-☐ Display username & version
-☐ Add universe creation guide
-☐ Fix ulr/comunity resunting in not found
-☐ Add universe card (color, font, icon, bg)
-☐ Fix block can be placed twice
-☐ Tutorial
 ☐ Display demo image
 ☐ Generate & display a preview of the world. Or canvas rendering ?
 ☐ Implement square selection and movement of blocks
 ☐ On drag & wheel, rotate
 ☐ Ctrl Z
 ☐ Fix block being moved without token ?
+☐ Make custom identicon

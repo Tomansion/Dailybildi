@@ -147,10 +147,12 @@ class WorldService:
         db: Session,
         skip: int = 0,
         limit: int = 20,
-        sort_by: str = "recent"
+        sort_by: str = "recent",
+        user_id: str = None
     ) -> tuple[list, int]:
         """Get paginated community worlds"""
         from sqlalchemy.orm import selectinload
+        from app.services.like_service import LikeService
         
         # Query all worlds (including orphaned ones)
         base_query = db.query(World)
@@ -177,6 +179,15 @@ class WorldService:
             selectinload(World.user),
             selectinload(World.placed_blocks).selectinload(PlacedBlock.block_catalog)
         ).all()
+        
+        # Get user's liked worlds if authenticated
+        user_liked_worlds = set()
+        if user_id:
+            user_liked_worlds = set(LikeService.get_user_liked_worlds(db, user_id))
+        
+        # Add liked flag to each world
+        for world in worlds:
+            world.liked = world.id in user_liked_worlds  # type: ignore
         
         # Sort results to match original order
         if sort_by == "likes":

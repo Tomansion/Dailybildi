@@ -11,10 +11,26 @@ from unittest.mock import patch, MagicMock
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
+# Set test database BEFORE importing app modules
+# This ensures all database connections use the test database
+project_root = Path(__file__).parent.parent.parent
+test_db_path = project_root / "dailybildi-test.db"
+os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
+
 from app.db import Base
 from app.models import User, UserInventory, BlockCatalog, InventoryBlock
 from app.config import get_settings
 from app.services.block_loader import BlockConfig, BlockLoader
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_db():
+    """Clean up test database after all tests complete"""
+    yield
+    # After all tests, remove the test database file
+    test_db_path = Path(__file__).parent.parent.parent / "dailybildi-test.db"
+    if test_db_path.exists():
+        test_db_path.unlink()
 
 
 @pytest.fixture(scope="session")

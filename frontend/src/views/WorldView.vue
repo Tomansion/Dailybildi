@@ -2,15 +2,14 @@
   <div class="world-view-container">
     <div class="header-controls">
       <button @click="goBack" class="back-btn">← Back to Community</button>
-      <button 
+      <LikeButton
         v-if="world && authStore.isAuthenticated"
-        @click="toggleLike" 
-        class="like-btn"
-        :class="{ liked: isLiked }"
-      >
-        <img :src="isLiked ? '/icons/heart-filled.svg' : '/icons/heart.svg'" alt="like" class="like-icon" />
-        {{ world.like_count }}
-      </button>
+        :world-id="route.params.worldId"
+        :like-count="world.like_count"
+        :is-liked="isLiked"
+        @update:like-count="world.like_count = $event"
+        @update:is-liked="isLiked = $event"
+      />
     </div>
 
     <div v-if="loading" class="loading">Loading world...</div>
@@ -29,6 +28,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getTileImageUrl } from '../services/urls'
 import { PhaserGameWrapper } from '../phaser/PhaserGame'
+import LikeButton from '../components/LikeButton.vue'
 import api from '../services/api'
 
 const router = useRouter()
@@ -152,22 +152,6 @@ const initializePhaserGame = async () => {
   }, 10000)
 }
 
-const toggleLike = async () => {
-  try {
-    if (isLiked.value) {
-      await api.delete(`/likes/${route.params.worldId}`)
-      world.value.like_count -= 1
-    } else {
-      await api.post(`/likes/${route.params.worldId}`)
-      world.value.like_count += 1
-    }
-    isLiked.value = !isLiked.value
-  } catch (err) {
-    error.value = 'Failed to update like'
-    console.error(err)
-  }
-}
-
 const formatDate = (dateString) => {
   const date = new Date(dateString)
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
@@ -204,8 +188,7 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
-.back-btn,
-.like-btn {
+.back-btn {
   background-color: transparent;
   color: var(--text-primary);
   border: 1px solid var(--text-primary);
@@ -219,30 +202,9 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
 }
 
-.back-btn:hover,
-.like-btn:hover {
+.back-btn:hover {
   background-color: var(--text-primary);
   color: var(--background);
-}
-
-.like-btn.liked {
-  border-color: #ff4458;
-  color: #ff4458;
-}
-
-.like-btn.liked:hover {
-  background-color: #ff4458;
-  color: var(--background);
-}
-
-.like-icon {
-  width: 1rem;
-  height: 1rem;
-  object-fit: contain;
-}
-
-.like-btn.liked .like-icon {
-  filter: invert(34%) sepia(100%) saturate(748%) hue-rotate(340deg) brightness(95%) contrast(90%);
 }
 
 .world-detail {

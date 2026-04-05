@@ -2,15 +2,25 @@
   <div id="app">
     <nav class="navbar">
       <div class="nav-container">
-          <router-link to="/" class="nav-brand">
-            <img src="/icons/logo.svg" alt="Dailybildi" class="nav-logo" />
-            Dailybildi</router-link>
+          <div class="nav-brand-section">
+            <router-link to="/" class="nav-brand">
+              <img src="/icons/logo.svg" alt="Dailybildi" class="nav-logo" />
+              Dailybildi
+            </router-link>
+            <a href="https://github.com/Tomansion/dailybildi" target="_blank" rel="noopener noreferrer" class="nav-version">v{{ version }}</a>
+          </div>
         <ul class="nav-menu">
           <li v-if="isAuthenticated" class="nav-item">
             <router-link to="/universes" class="nav-link">Universes</router-link>
           </li>
           <li class="nav-item">
             <router-link to="/community" class="nav-link">Community</router-link>
+          </li>
+          <li v-if="isAuthenticated" class="nav-item">
+            <div class="nav-user-profile">
+              <img src="/icons/user.svg" alt="user" class="nav-user-icon" />
+              <span class="nav-username">{{ userDisplayName }}</span>
+            </div>
           </li>
           <li v-if="!isAuthenticated" class="nav-item">
             <router-link to="/login" class="nav-link">Login</router-link>
@@ -34,11 +44,14 @@
 import { computed } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
+import packageJson from '../package.json'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const version = packageJson.version
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
+const userDisplayName = computed(() => authStore.user?.display_name || '')
 
 const logout = () => {
   authStore.logout()
@@ -94,11 +107,33 @@ const logout = () => {
   letter-spacing: -1px;
 }
 
+.nav-brand-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-version {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-version:hover {
+  color: var(--text-primary);
+}
+
 .nav-brand:hover {
   opacity: 1;
 }
 
 @media (max-width: 768px) {
+  .nav-brand-section {
+    gap: 0;
+  }
+
   .nav-brand {
     gap: 0;
     font-size: 0;
@@ -107,6 +142,10 @@ const logout = () => {
   .nav-logo {
     height: 28px;
     width: 28px;
+  }
+
+  .nav-version {
+    display: none;
   }
 }
 
@@ -140,6 +179,20 @@ const logout = () => {
 
 .nav-link:hover {
   opacity: 0.7;
+}
+
+.nav-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.5;
+  font-size: 0.8rem;
+}
+
+.nav-user-icon {
+  height: 15px;
+  width: 15px;
+  object-fit: contain;
 }
 
 @media (max-width: 768px) {
