@@ -141,19 +141,19 @@ def health_check():
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
     """Serve SPA frontend for all unmatched routes except /api and static files"""
-    # Don't serve frontend for API routes
-    if full_path.startswith("api"):
+    # Don't serve frontend for API routes - they should be handled by routers
+    if full_path.startswith("api/"):
         raise HTTPException(status_code=404, detail=f"API endpoint /{full_path} not found")
     
-    # Don't serve frontend for known static paths (these should be handled by mounts)
-    static_paths = ["icons", "fonts", "logo.png", "assets", "univers", "tiles", "favicon.ico"]
+    # Don't serve frontend for known static paths
+    # Use trailing slashes to avoid matching /universes when checking for /univers/
+    static_paths = ["icons/", "fonts/", "logo.png", "assets/", "univers/", "tiles/", "favicon.ico"]
     if any(full_path.startswith(path) for path in static_paths):
         raise HTTPException(status_code=404, detail=f"File not found: /{full_path}")
     
     frontend_index = Path(__file__).parent.parent.parent / "backend" / "public" / "static" / "frontend" / "index.html"
     if frontend_index.exists():
         return FileResponse(frontend_index)
-    # Fallback if frontend not built
     return {"message": "Frontend not found. Please build the frontend first."}
 
 

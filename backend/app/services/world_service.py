@@ -52,8 +52,22 @@ class WorldService:
         user_id: str = None
     ) -> PlacedBlock:
         """Place a block on the world"""
-        # Note: Block existence is verified by the route handler against inventory
-        # No need to query BlockCatalog since blocks are now filesystem-based
+        # CRITICAL: Validate inventory BEFORE creating placed block
+        # This prevents race conditions where multiple requests can place the same block
+        if user_id:
+            inventory = InventoryService.get_user_inventory(db, user_id)
+            if not inventory:
+                raise ValueError("User inventory not found")
+            
+            # Check if user has this block in inventory with quantity > 0
+            from app.models import InventoryBlock
+            inventory_block = db.query(InventoryBlock).filter(
+                InventoryBlock.inventory_id == inventory.id,
+                InventoryBlock.block_catalog_id == block_catalog_id
+            ).first()
+            
+            if not inventory_block or inventory_block.quantity <= 0:
+                raise ValueError("Block not found in inventory or out of stock")
 
         # Create placed block
         placed_block = PlacedBlock(

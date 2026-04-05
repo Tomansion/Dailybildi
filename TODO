@@ -17,10 +17,11 @@
 ✔ Fix likes @done(26-04-05 19:03)
 ✔ Add github link @done(26-04-05 19:15)
 ✔ Display username & version @done(26-04-05 19:15)
+✔ Fix block can be placed twice @done(26-04-05 20:34)
+✔ Fix url/universe in not found @done(26-04-05 20:47)
 
-☐ Fix block can be placed twice
 ☐ Add universe creation guide
-☐ Fix url/community in not found
+☐ Fix mobile world load not working in view mode
 ☐ Add universe card (color, font, icon, bg)
 ☐ Tutorial
 ☐ Improve Readme
