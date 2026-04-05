@@ -32,9 +32,6 @@ class BlockCatalog(Base):
     universe_id = Column(String, nullable=False)
     image_path = Column(String, nullable=False)
 
-    # Unique constraint on (blockId, universeId)
-    __table_args__ = (UniqueConstraint('block_id', 'universe_id'),)
-
     # Relationships
     inventory_blocks = relationship("InventoryBlock", back_populates="block_catalog")
     placed_blocks = relationship("PlacedBlock", back_populates="block_catalog")

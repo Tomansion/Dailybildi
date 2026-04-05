@@ -39,7 +39,7 @@ class BlockService:
         Returns:
             Dict with distribution info
         """
-        from app.models import UserInventory, InventoryBlock
+        from app.models import UserInventory, InventoryBlock, BlockCatalog
         from app.services.inventory_service import InventoryService
         
         if not universe_id:
@@ -49,6 +49,9 @@ class BlockService:
         all_blocks = BlockLoader.load_blocks(universe_id)
         if not all_blocks:
             raise ValueError(f"No blocks found for universe '{universe_id}'. Check config.json in public/univers/{universe_id}/")
+        
+        # Ensure all blocks exist in block_catalog (foreign key requirement)
+        BlockService._ensure_blocks_in_catalog(db, universe_id, all_blocks)
         
         # Get inventory
         inventory = db.query(UserInventory).filter(UserInventory.id == inventory_id).first()
@@ -199,5 +202,36 @@ class BlockService:
         # Select one block using weighted selection
         selected_block = random.choices(blocks, weights=weights, k=1)[0]
         return selected_block
+    
+    @staticmethod
+    def _ensure_blocks_in_catalog(db: Session, universe_id: str, blocks: list) -> None:
+        """Ensure all blocks exist in block_catalog table (required for foreign keys)"""
+        from app.models import BlockCatalog
+        
+        for block in blocks:
+            # Check if block already exists
+            existing = db.query(BlockCatalog).filter(
+                BlockCatalog.id == block.id,
+                BlockCatalog.universe_id == universe_id
+            ).first()
+            
+            if not existing:
+                # Create block in catalog
+                catalog_entry = BlockCatalog(
+                    id=block.id,
+                    block_id=block.block_id,
+                    layer=block.layer,
+                    rarity=block.rarity,
+                    universe_id=universe_id,
+                    image_path=block.image_path
+                )
+                db.add(catalog_entry)
+        
+        # Commit all new blocks to catalog
+        try:
+            db.commit()
+        except Exception as e:
+            # If there's a unique constraint violation, just rollback
+            db.rollback()
 
 

@@ -7,8 +7,10 @@ import logging
 from pathlib import Path
 
 from app.config import get_settings
-from app.db import init_db
+from app.db import init_db, SessionLocal
+from app.utils.db_integrity import DatabaseIntegrity
 from app.routes import auth, blocks, inventory, worlds, community, likes, universes
+from app.routes import admin
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +28,17 @@ async def lifespan(app: FastAPI):
         logger.info("Initializing database...")
         init_db()
         logger.info("Database initialized successfully")
+        
+        # Check and clean up database integrity issues
+        db = SessionLocal()
+        try:
+            integrity_stats = DatabaseIntegrity.cleanup_orphaned_records(db, dry_run=False)
+            if any(integrity_stats.values()):
+                logger.warning(f"Database cleanup performed: {integrity_stats}")
+        except Exception as e:
+            logger.error(f"Database integrity check failed: {e}")
+        finally:
+            db.close()
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
     
@@ -59,6 +72,7 @@ app.include_router(worlds.router)
 app.include_router(community.router)
 app.include_router(likes.router)
 app.include_router(universes.router)
+app.include_router(admin.router)
 
 # Mount static files (serve public folder at /univers, /world, etc.)
 public_path = Path(__file__).parent.parent.parent / "public"

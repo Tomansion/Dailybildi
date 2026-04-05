@@ -152,24 +152,36 @@ class WorldService:
         """Get paginated community worlds"""
         from sqlalchemy.orm import selectinload
         
+        # Query all worlds (including orphaned ones)
+        base_query = db.query(World)
+        total = base_query.count()
+        
         # Sort
         if sort_by == "likes":
-            query = db.query(World).order_by(desc(World.like_count))
+            base_query = base_query.order_by(desc(World.like_count))
         else:  # "recent"
-            query = db.query(World).order_by(desc(World.updated_at))
-
-        # Count total before pagination
-        total = query.count()
-
-        # Paginate
-        query = query.offset(skip).limit(limit)
+            base_query = base_query.order_by(desc(World.updated_at))
         
-        # Apply eager loading after pagination
-        query = query.options(
+        # Paginate first to get IDs
+        paginated_worlds = base_query.offset(skip).limit(limit).all()
+        
+        if not paginated_worlds:
+            return [], total
+        
+        world_ids = [w.id for w in paginated_worlds]
+        
+        # Load worlds with relationships (user may be None for orphaned worlds)
+        worlds = db.query(World).filter(
+            World.id.in_(world_ids)
+        ).options(
             selectinload(World.user),
             selectinload(World.placed_blocks).selectinload(PlacedBlock.block_catalog)
-        )
+        ).all()
         
-        worlds = query.all()
+        # Sort results to match original order
+        if sort_by == "likes":
+            worlds = sorted(worlds, key=lambda w: w.like_count, reverse=True)
+        else:
+            worlds = sorted(worlds, key=lambda w: w.updated_at, reverse=True)
 
         return worlds, total

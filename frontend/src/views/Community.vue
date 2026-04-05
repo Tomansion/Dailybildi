@@ -30,7 +30,7 @@
         >
           <div class="card-header">
             <div>
-              <h3>{{ world.user.display_name }}</h3>
+              <h3>{{ world.user?.display_name || 'Unknown User' }}</h3>
               <p class="world-date">{{ formatDate(world.created_at) }}</p>
             </div>
           </div>

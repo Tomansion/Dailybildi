@@ -142,7 +142,7 @@ class CommunityWorldResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     like_count: int
-    user: UserResponse
+    user: Optional[UserResponse] = None
     placed_blocks: list[PlacedBlockResponse] = []
 
     class Config:

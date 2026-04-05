@@ -119,8 +119,7 @@ class UniverseService:
             BlockService.distribute_blocks_to_user(
                 db,
                 inventory.id,
-                all_blocks,
-                universe_config
+                universe_id
             )
         
         return {
