@@ -9,7 +9,7 @@ export class PhaserGameWrapper {
 
   initialize(parent) {
     if (this.game) {
-      return
+      return Promise.resolve(this.mainScene)
     }
 
     // Get the actual DOM element if a string ID is passed
@@ -17,7 +17,7 @@ export class PhaserGameWrapper {
 
     if (!parentElement) {
       console.error(`Parent element not found: ${parent}`)
-      return
+      return Promise.reject(new Error(`Parent element not found: ${parent}`))
     }
 
     const config = {
@@ -49,14 +49,12 @@ export class PhaserGameWrapper {
       e.preventDefault()
     }
 
-    // Get scene reference
-    this.game.events.once('ready', () => {
-      this.mainScene = this.game.scene.getScene('MainScene')
+    return new Promise((resolve) => {
+      this.game.events.once('ready', () => {
+        this.mainScene = this.game.scene.getScene('MainScene')
+        resolve(this.mainScene)
+      })
     })
-  }
-
-  getMainScene() {
-    return this.mainScene
   }
 
   destroy() {

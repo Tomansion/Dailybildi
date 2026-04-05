@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { getTileImageUrl } from '../services/urls'
@@ -63,98 +63,69 @@ const fetchWorld = async () => {
   } catch (err) {
     error.value = 'Failed to load world'
     console.error(err)
-  } finally {
     loading.value = false
+    return
   }
-}
 
-// Watch for world changes to initialize Phaser when DOM is ready
-watch(world, async (newWorld) => {
-  if (newWorld) {
-    await nextTick()
-    // Give Vue a bit more time to render the DOM element
-    await new Promise(resolve => setTimeout(resolve, 50))
-    await initializePhaserGame()
-  }
-})
+  loading.value = false
 
-const initializePhaserGame = async () => {
-  if (!world.value) return
-
-  // Wait for DOM to be updated
+  // Wait for Vue to render the DOM element
   await nextTick()
 
   // Initialize Phaser game
   phaserGame = new PhaserGameWrapper()
-  phaserGame.initialize('phaser-container-view')
+  mainScene = await phaserGame.initialize('phaser-container-view')
 
-  // Wait for scene to be ready
-  const checkScene = setInterval(() => {
-    mainScene = phaserGame.getMainScene()
-    if (mainScene) {
-      clearInterval(checkScene)
+  if (!mainScene) {
+    error.value = 'Failed to initialize game'
+    return
+  }
 
-      // Set read-only mode - disables block manipulation
-      mainScene.setReadOnly(true)
+  mainScene.setReadOnly(true)
 
-      // Collect all block images to load from placed blocks
-      const blockImageMap = new Map()
-      
-      world.value.placed_blocks.forEach(block => {
-        if (!blockImageMap.has(block.block_catalog_id)) {
-          blockImageMap.set(block.block_catalog_id, {
-            id: block.block_catalog_id,
-            layer: block.layer,
-            rarity: block.rarity,
-            imagePath: getTileImageUrl(block.image_path)
-          })
-        }
+  // Collect all block images to load from placed blocks
+  const blockImageMap = new Map()
+
+  world.value.placed_blocks.forEach(block => {
+    if (!blockImageMap.has(block.block_catalog_id)) {
+      blockImageMap.set(block.block_catalog_id, {
+        id: block.block_catalog_id,
+        layer: block.layer,
+        rarity: block.rarity,
+        imagePath: getTileImageUrl(block.image_path)
       })
-      
-      const allBlockImages = Array.from(blockImageMap.values())
-
-      // Transform placed blocks to Phaser format
-      const placedBlocks = world.value.placed_blocks.map(block => ({
-        _key: block.id,
-        blockKey: block.id,
-        blockCatalogKey: block.block_id,
-        gridX: block.grid_x,
-        gridY: block.grid_y,
-        rotation: block.rotation || 0,
-        flipX: block.flip_x || false,
-        flipY: block.flip_y || false,
-        zOrder: block.z_order || 0,
-        blockData: {
-          id: block.block_catalog_id,
-          layer: block.layer,
-          rarity: block.rarity,
-          imagePath: getTileImageUrl(block.image_path)
-        }
-      }))
-
-      // Load images first, then blocks
-      if (allBlockImages.length > 0) {
-        mainScene.loadBlockImages(allBlockImages, () => {
-          mainScene.loadBlocks(placedBlocks)
-        })
-      } else {
-        mainScene.loadBlocks(placedBlocks)
-      }
     }
-  }, 100)
+  })
 
-  // Timeout after 10 seconds
-  setTimeout(() => {
-    clearInterval(checkScene)
-    if (!mainScene) {
-      error.value = 'Failed to initialize game'
+  const allBlockImages = Array.from(blockImageMap.values())
+
+  // Transform placed blocks to Phaser format
+  const placedBlocks = world.value.placed_blocks.map(block => ({
+    _key: block.id,
+    blockKey: block.id,
+    blockCatalogKey: block.block_id,
+    gridX: block.grid_x,
+    gridY: block.grid_y,
+    rotation: block.rotation || 0,
+    flipX: block.flip_x || false,
+    flipY: block.flip_y || false,
+    zOrder: block.z_order || 0,
+    blockData: {
+      id: block.block_catalog_id,
+      layer: block.layer,
+      rarity: block.rarity,
+      imagePath: getTileImageUrl(block.image_path)
     }
-  }, 10000)
-}
+  }))
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+  // Load images first, then blocks
+  if (allBlockImages.length > 0) {
+    mainScene.loadBlockImages(allBlockImages, () => {
+      mainScene.loadBlocks(placedBlocks)
+    })
+  } else {
+    mainScene.loadBlocks(placedBlocks)
+  }
 }
 
 onMounted(() => {

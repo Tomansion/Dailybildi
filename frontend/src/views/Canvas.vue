@@ -178,116 +178,105 @@ onMounted(async () => {
     
     // Initialize Phaser game
     phaserGame = new PhaserGameWrapper()
-    phaserGame.initialize('phaser-container')
+    mainScene = await phaserGame.initialize('phaser-container')
 
-    // Wait for scene to be ready
-    const checkScene = setInterval(() => {
-      mainScene = phaserGame.getMainScene()
-      if (mainScene) {
-        clearInterval(checkScene)
+    if (!mainScene) {
+      error.value = 'Failed to initialize game'
+      loading.value = false
+      return
+    }
 
-        // Collect all block images to load (from both inventory and placed blocks)
-        // Use a Map to deduplicate by block catalog id
-        const blockImageMap = new Map()
-        
-        // Add inventory blocks
-        inventoryBlocks.value.forEach(block => {
-          blockImageMap.set(block.blockData.id, {
-            id: block.blockData.id,
-            layer: block.blockData.layer,
-            rarity: block.blockData.rarity,
-            imagePath: block.blockData.imagePath
-          })
+    // Collect all block images to load (from both inventory and placed blocks)
+    // Use a Map to deduplicate by block catalog id
+    const blockImageMap = new Map()
+
+    // Add inventory blocks
+    inventoryBlocks.value.forEach(block => {
+      blockImageMap.set(block.blockData.id, {
+        id: block.blockData.id,
+        layer: block.blockData.layer,
+        rarity: block.blockData.rarity,
+        imagePath: block.blockData.imagePath
+      })
+    })
+
+    // Add placed blocks (they may not be in inventory anymore)
+    placedBlocks.forEach(block => {
+      if (!blockImageMap.has(block.blockData.id)) {
+        blockImageMap.set(block.blockData.id, {
+          id: block.blockData.id,
+          layer: block.blockData.layer,
+          rarity: block.blockData.rarity,
+          imagePath: block.blockData.imagePath
         })
-        
-        // Add placed blocks (they may not be in inventory anymore)
-        placedBlocks.forEach(block => {
-          if (!blockImageMap.has(block.blockData.id)) {
-            blockImageMap.set(block.blockData.id, {
-              id: block.blockData.id,
-              layer: block.blockData.layer,
-              rarity: block.blockData.rarity,
-              imagePath: block.blockData.imagePath
-            })
+      }
+    })
+
+    const allBlockImages = Array.from(blockImageMap.values())
+
+    // Setup callbacks
+    mainScene.setOnBlockPlaced(async (blockCatalogKey, gridX, gridY) => {
+      try {
+        await inventoryStore.placeBlock(blockCatalogKey, gridX, gridY)
+        // Reload inventory and blocks
+        await inventoryStore.fetchInventory()
+        const updated = await inventoryStore.fetchWorldBlocks()
+        if (updated && mainScene) {
+          mainScene.loadBlocks(updated)
+          // Select the last placed block (it's the one at the end of the updated list)
+          if (updated.length > 0) {
+            const lastBlock = updated[updated.length - 1]
+            mainScene.selectBlockByKey(lastBlock.blockKey)
+            hasSelectedBlock.value = true
           }
-        })
-        
-        const allBlockImages = Array.from(blockImageMap.values())
-
-        // Setup callbacks
-        mainScene.setOnBlockPlaced(async (blockCatalogKey, gridX, gridY) => {
-          try {
-            await inventoryStore.placeBlock(blockCatalogKey, gridX, gridY)
-            // Reload inventory and blocks
-            await inventoryStore.fetchInventory()
-            const updated = await inventoryStore.fetchWorldBlocks()
-            if (updated && mainScene) {
-              mainScene.loadBlocks(updated)
-              // Select the last placed block (it's the one at the end of the updated list)
-              if (updated.length > 0) {
-                const lastBlock = updated[updated.length - 1]
-                mainScene.selectBlockByKey(lastBlock.blockKey)
-                hasSelectedBlock.value = true
-              }
-            }
-            // Check if the block type is still in inventory
-            const blockStillInInventory = inventoryBlocks.value.some(
-              block => block.blockCatalogKey === blockCatalogKey && block.quantity > 0
-            )
-            
-            // Only cancel placement if the block is no longer in inventory (was the last one)
-            if (!blockStillInInventory) {
-              cancelBlockPlacement()
-            }
-            // Otherwise keep it selected for placing more of the same type
-          } catch (err) {
-            console.error('Failed to place block:', err)
-          }
-        })
-
-        mainScene.setOnBlockSelected((blockKey) => {
-          hasSelectedBlock.value = true
-        })
-
-        mainScene.setOnBlockDeselected(() => {
-          hasSelectedBlock.value = false
-        })
-
-        mainScene.setOnBlockUpdated(async (blockKey, updates) => {
-          try {
-            if (updates.removed) {
-              await inventoryStore.removeBlock(blockKey)
-              // Reload inventory when block is removed
-              await inventoryStore.fetchInventory()
-            } else {
-              await inventoryStore.updateBlock(blockKey, updates)
-            }
-          } catch (err) {
-            console.error('Failed to update block:', err)
-          }
-        })
-
-        // Load images first, then blocks
-        if (allBlockImages.length > 0) {
-          mainScene.loadBlockImages(allBlockImages, () => {
-            mainScene.loadBlocks(placedBlocks)
-          })
-        } else {
-          mainScene.loadBlocks(placedBlocks)
         }
+        // Check if the block type is still in inventory
+        const blockStillInInventory = inventoryBlocks.value.some(
+          block => block.blockCatalogKey === blockCatalogKey && block.quantity > 0
+        )
 
-        loading.value = false
+        // Only cancel placement if the block is no longer in inventory (was the last one)
+        if (!blockStillInInventory) {
+          cancelBlockPlacement()
+        }
+        // Otherwise keep it selected for placing more of the same type
+      } catch (err) {
+        console.error('Failed to place block:', err)
       }
-    }, 100)
+    })
 
-    // Timeout after 10 seconds
-    setTimeout(() => {
-      clearInterval(checkScene)
-      if (!mainScene) {
-        error.value = 'Failed to initialize game'
-        loading.value = false
+    mainScene.setOnBlockSelected((blockKey) => {
+      hasSelectedBlock.value = true
+    })
+
+    mainScene.setOnBlockDeselected(() => {
+      hasSelectedBlock.value = false
+    })
+
+    mainScene.setOnBlockUpdated(async (blockKey, updates) => {
+      try {
+        if (updates.removed) {
+          await inventoryStore.removeBlock(blockKey)
+          // Reload inventory when block is removed
+          await inventoryStore.fetchInventory()
+        } else {
+          await inventoryStore.updateBlock(blockKey, updates)
+        }
+      } catch (err) {
+        console.error('Failed to update block:', err)
       }
-    }, 10000)
+    })
+
+    // Load images first, then blocks
+    if (allBlockImages.length > 0) {
+      mainScene.loadBlockImages(allBlockImages, () => {
+        mainScene.loadBlocks(placedBlocks)
+      })
+    } else {
+      mainScene.loadBlocks(placedBlocks)
+    }
+
+    loading.value = false
   } catch (err) {
     error.value = 'Failed to load canvas: ' + (err.message || 'Unknown error')
     console.error(err)
