@@ -11,8 +11,14 @@
 ✔ World view @done(26-04-04 13:08)
 ✔ Fix missing blocks @done(26-04-04 13:08)
 ✔ Make nice bg animation in hte login page @done(26-04-04 14:08)
+✔ Add user display name @done(26-04-04 14:42)
 
-☐ Add user display name
+✔ Volume @done(26-04-05 18:21)
+☐ Fix likes
+☐ Add github link
+☐ Add universe creation guide
+☐ Add universe card (color, font, icon, bg)
+☐ Fix block can be placed twice
 ☐ Tutorial
 ☐ Display demo image
 ☐ Generate & display a preview of the world. Or canvas rendering ?

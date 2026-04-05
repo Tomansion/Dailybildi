@@ -150,23 +150,26 @@ class WorldService:
         sort_by: str = "recent"
     ) -> tuple[list, int]:
         """Get paginated community worlds"""
-        from sqlalchemy.orm import joinedload
+        from sqlalchemy.orm import selectinload
         
-        query = db.query(World).options(
-            joinedload(World.user),
-            joinedload(World.placed_blocks).joinedload(PlacedBlock.block_catalog)
-        )
-
-        # Count total
-        total = query.count()
-
         # Sort
         if sort_by == "likes":
-            query = query.order_by(desc(World.like_count))
+            query = db.query(World).order_by(desc(World.like_count))
         else:  # "recent"
-            query = query.order_by(desc(World.updated_at))
+            query = db.query(World).order_by(desc(World.updated_at))
+
+        # Count total before pagination
+        total = query.count()
 
         # Paginate
-        worlds = query.offset(skip).limit(limit).all()
+        query = query.offset(skip).limit(limit)
+        
+        # Apply eager loading after pagination
+        query = query.options(
+            selectinload(World.user),
+            selectinload(World.placed_blocks).selectinload(PlacedBlock.block_catalog)
+        )
+        
+        worlds = query.all()
 
         return worlds, total

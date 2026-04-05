@@ -98,6 +98,12 @@ docker run -p 8000:8000 dailybildi
 docker run -p 8000:8000 --env-file backend/.env dailybildi
 ```
 
+**With data persistence (named volume):**
+
+```bash
+docker run -p 8000:8000 -v dailybildi-data:/app/data dailybildi
+```
+
 **Access the application:**
 - Frontend & API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
