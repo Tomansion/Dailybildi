@@ -185,6 +185,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   background-color: var(--surface);
   border-radius: 10px;
+  overflow: hidden;
 }
 
 .phaser-container {

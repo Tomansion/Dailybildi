@@ -234,4 +234,16 @@ onBeforeUnmount(() => {
   font-family: monospace;
   color: var(--text-primary);
 }
+
+@media (max-width: 768px) {
+  .inventory-container {
+    width: 100%;
+    height: inherit;
+  }
+  
+.blocks-grid {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+}
 </style>

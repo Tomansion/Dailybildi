@@ -509,6 +509,18 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  zoomIn() {
+    if (this.cameraManager) {
+      this.cameraManager.zoomIn()
+    }
+  }
+
+  zoomOut() {
+    if (this.cameraManager) {
+      this.cameraManager.zoomOut()
+    }
+  }
+
   setReadOnly(isReadOnly = true) {
     this.readOnly = isReadOnly
   }

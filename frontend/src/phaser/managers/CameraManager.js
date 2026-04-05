@@ -120,6 +120,16 @@ export class CameraManager {
     })
   }
 
+  zoomIn() {
+    const newZoom = Math.min(7.0, this.camera.zoom + 0.5)
+    this.camera.setZoom(newZoom)
+  }
+
+  zoomOut() {
+    const newZoom = Math.max(0.7, this.camera.zoom - 0.5)
+    this.camera.setZoom(newZoom)
+  }
+
   centerOn(x, y) {
     this.camera.centerOn(x, y)
   }

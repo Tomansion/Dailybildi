@@ -23,6 +23,8 @@
         @flip-horizontal="handleFlipHorizontal"
         @flip-vertical="handleFlipVertical"
         @discard="handleDiscard"
+        @zoom-in="handleZoomIn"
+        @zoom-out="handleZoomOut"
       />
     </div>
 
@@ -166,6 +168,14 @@ const handleDiscard = () => {
     mainScene.removeSelectedBlock()
     hasSelectedBlock.value = false
   }
+}
+
+const handleZoomIn = () => {
+  if (mainScene) mainScene.zoomIn()
+}
+
+const handleZoomOut = () => {
+  if (mainScene) mainScene.zoomOut()
 }
 
 onMounted(async () => {
@@ -376,4 +386,18 @@ onBeforeUnmount(() => {
   color: var(--error);
   border-color: var(--error);
 }
+
+@media (max-width: 768px) {
+  .canvas-content {
+    flex-direction: column-reverse;
+  }
+  .action-buttons {
+    top: 50%;
+    right: 1rem;
+    left: auto;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+}
+
 </style>
