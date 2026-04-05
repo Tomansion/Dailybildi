@@ -19,17 +19,18 @@
 ✔ Display username & version @done(26-04-05 19:15)
 ✔ Fix block can be placed twice @done(26-04-05 20:34)
 ✔ Fix url/universe in not found @done(26-04-05 20:47)
+✔ Add zoom unzoom btn @done(26-04-05 21:14)
+✔ Add universe creation guide @done(26-04-05 21:40)
+✔ Improve Readme @done(26-04-05 21:46)
 
-☐ Add universe creation guide
 ☐ Fix mobile world load not working in view mode
 ☐ Add universe card (color, font, icon, bg)
-☐ Tutorial
-☐ Improve Readme
+☐ Fix nb available blocks not updating before entering the world
 ☐ Add to portfolio
 ☐ Display demo image
 ☐ Generate & display a preview of the world. Or canvas rendering ?
-☐ Implement square selection and movement of blocks
 ☐ On drag & wheel, rotate
+☐ Tutorial
 ☐ Ctrl Z
-☐ Fix block being moved without token ?
+☐ Implement square selection and movement of blocks
 ☐ Make custom identicon

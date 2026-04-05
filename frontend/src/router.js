@@ -43,6 +43,11 @@ const routes = [
     component: () => import('./views/WorldView.vue')
   },
   {
+    path: '/universe-contribution',
+    name: 'UniverseContribution',
+    component: () => import('./views/UniverseContribution.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('./views/NotFound.vue')

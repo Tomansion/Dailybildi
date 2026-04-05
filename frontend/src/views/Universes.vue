@@ -37,6 +37,15 @@
             {{ enteringUniverse === universe.id ? 'Loading...' : 'Enter' }}
           </BaseButton>
         </BaseCard>
+
+        <BaseCard
+          class="universe-card more-card"
+          @click="router.push('/universe-contribution')"
+        >
+          <h3>Want more universes?</h3>
+          <p class="more-description">Contribute your own universe — your own theme, your own blocks.</p>
+          <span class="more-link">Learn how →</span>
+        </BaseCard>
       </div>
     </div>
   </div>
@@ -189,6 +198,29 @@ h1 {
 
 .enter-button {
   width: 100%;
+}
+
+.more-card {
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.more-card:hover {
+  border-color: var(--text-primary);
+  border-style: solid;
+  transform: translateY(-2px);
+}
+
+.more-description {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.more-link {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .loading,
