@@ -56,7 +56,9 @@ def get_inventory(db: Session = Depends(get_db), user_id: str = Depends(get_curr
                     'block_id': block.block_id,
                     'layer': block.layer,
                     'rarity': block.rarity,
-                    'image_path': block.image_path
+                    'image_path': block.image_path,
+                    'width': block.width,
+                    'height': block.height
                 }
         
         # Calculate total blocks and enrich block data
@@ -77,7 +79,9 @@ def get_inventory(db: Session = Depends(get_db), user_id: str = Depends(get_curr
                 block_id=metadata.get('block_id', ''),
                 layer=metadata.get('layer', 0),
                 rarity=metadata.get('rarity', 0),
-                image_path=metadata.get('image_path', '')
+                image_path=metadata.get('image_path', ''),
+                width=metadata.get('width', 1),
+                height=metadata.get('height', 1)
             )
             blocks_response.append(block_response)
         

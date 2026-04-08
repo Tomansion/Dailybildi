@@ -54,6 +54,8 @@ class InventoryBlockResponse(BaseModel):
     layer: int
     rarity: int
     image_path: str
+    width: int = 1
+    height: int = 1
     block_catalog: Optional[BlockCatalogResponse] = None  # For backwards compatibility
 
     class Config:

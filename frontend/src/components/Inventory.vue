@@ -2,24 +2,35 @@
   <div class="inventory-container" @pointerdown.stop @click.stop>
     <div class="inventory-header">
       <h3>Inventory</h3>
-      <p class="block-count">{{ totalBlocks }} {{ totalBlocks === 1 ? "block" : "blocks" }}</p>
+      <p class="block-count">
+        {{ totalBlocks }} {{ totalBlocks === 1 ? "block" : "blocks" }}
+      </p>
     </div>
 
     <div class="scroll-area">
       <div class="blocks-grid">
-        <div v-if="blocks.length === 0" class="no-blocks">No blocks available</div>
+        <div v-if="blocks.length === 0" class="no-blocks">
+          No blocks available
+        </div>
         <div
           v-for="block in blocks"
           :key="block.blockCatalogKey"
           class="block-card"
-          :class="{ selected: selectedBlockKey === block.blockCatalogKey }"
+          :class="[
+            `w${block.blockData.width || 1}`,
+            `h${block.blockData.height || 1}`,
+            { selected: selectedBlockKey === block.blockCatalogKey },
+          ]"
           draggable="true"
           @click="$emit('block-select', block)"
           @dragstart="handleDragStart($event, block)"
           @dragend="handleDragEnd"
         >
           <div class="block-image">
-            <img :src="block.blockData.imagePath" :alt="block.blockCatalogKey" />
+            <img
+              :src="block.blockData.imagePath"
+              :alt="block.blockCatalogKey"
+            />
           </div>
           <div class="block-quantity">{{ block.quantity }}</div>
         </div>
@@ -106,7 +117,7 @@ const handleDragStart = (event, block) => {
       id: block.blockData.id,
       layer: block.blockData.layer,
       rarity: block.blockData.rarity,
-    })
+    }),
   );
 };
 
@@ -168,6 +179,38 @@ onBeforeUnmount(() => {
   font-size: 0.8rem;
 }
 
+.block-card.w1 {
+  grid-column: span 1;
+}
+.block-card.w2 {
+  grid-column: span 2;
+}
+.block-card.w3 {
+  grid-column: span 3;
+}
+.block-card.w4 {
+  grid-column: span 4;
+}
+.block-card.w5 {
+  grid-column: span 5;
+}
+
+.block-card.h1 {
+  grid-row: span 1;
+}
+.block-card.h2 {
+  grid-row: span 2;
+}
+.block-card.h3 {
+  grid-row: span 3;
+}
+.block-card.h4 {
+  grid-row: span 4;
+}
+.block-card.h5 {
+  grid-row: span 5;
+}
+
 .block-card {
   position: relative;
   cursor: pointer;
@@ -187,14 +230,16 @@ onBeforeUnmount(() => {
 }
 
 .block-image {
+  justify-content: center;
+  display: flex;
   width: 100%;
+  height: 100%;
   aspect-ratio: 1;
   overflow: hidden;
 }
 
 .block-image img {
   width: 100%;
-  height: 100%;
   object-fit: contain;
 }
 
@@ -240,10 +285,9 @@ onBeforeUnmount(() => {
     width: 100%;
     height: inherit;
   }
-  
-.blocks-grid {
-  grid-template-columns: repeat(6, 1fr);
-}
 
+  .blocks-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 </style>

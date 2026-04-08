@@ -62,7 +62,9 @@ const inventoryBlocks = computed(() => {
       id: block.block_catalog_id,
       layer: block.layer,
       rarity: block.rarity,
-      imagePath: getTileImageUrl(block.image_path)
+      imagePath: getTileImageUrl(block.image_path),
+      width: block.width,
+      height: block.height
     }
   }))
 })
