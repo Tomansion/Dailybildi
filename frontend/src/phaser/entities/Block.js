@@ -23,7 +23,7 @@ export class Block extends Phaser.GameObjects.Sprite {
     this.height = blockData.blockData.height || 1
 
     // Set visual properties
-    this.setOrigin(0.5, 0.5)
+    // this.setOrigin(0.5, 0.5)
     this.setScale(1.02)
     this.setAngle(blockData.rotation)
     this.setFlipX(blockData.flipX)
