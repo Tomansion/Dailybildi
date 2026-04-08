@@ -27,9 +27,10 @@ class BlockService:
         
         Logic:
         - If no distribution date for this universe: give 30 blocks (first time)
-        - If new day for this universe:
-          - If current inventory <= 10 blocks: clear all blocks then add 10 new
-          - If current inventory > 10 blocks: keep all, add 10 new
+        - If new day for this universe: add 10 blocks, capped at 30
+          - Example: 3 blocks → add 10 → 13 blocks
+          - Example: 23 blocks → add 10 → 30 blocks (capped)
+          - Example: 30 blocks → add 0 → 30 blocks (already at max)
         
         Args:
             db: Database session
@@ -109,7 +110,7 @@ class BlockService:
                 "distribution_date": today
             }
         
-        # Case 3: New day OR underfunded user (fall-through from Case 2)
+        # Case 3: New day - stack blocks up to the limit
         # Count current inventory blocks
         current_count = db.query(InventoryBlock).filter(
             InventoryBlock.inventory_id == inventory_id
@@ -117,49 +118,34 @@ class BlockService:
             func.sum(InventoryBlock.quantity)
         ).scalar() or 0
         
-        # If <= 10 blocks, clear them all and add 10 new
-        if current_count <= 10:
-            db.query(InventoryBlock).filter(
-                InventoryBlock.inventory_id == inventory_id
-            ).delete()
-            db.commit()
-            
-            # Add 10 new blocks
-            count = settings.DAILY_BLOCKS_COUNT
-            
+        # Calculate new target: add DAILY_BLOCKS_COUNT but cap at INITIAL_BLOCKS_COUNT
+        new_target = min(current_count + settings.DAILY_BLOCKS_COUNT, settings.INITIAL_BLOCKS_COUNT)
+        blocks_to_add = new_target - current_count
+        
+        if blocks_to_add > 0:
+            # Add blocks to reach the new target
             distributed = BlockService.select_and_add_blocks(
                 db,
                 inventory_id,
                 all_blocks,
-                count
+                blocks_to_add
             )
-            
-            inventory.last_distributions[universe_id] = today
-            flag_modified(inventory, "last_distributions")
-            db.commit()
-            
-            return {
-                "blocks_added": distributed,
-                "is_first_time": False,
-                "action": "daily_reset",
-                "cleared_old_inventory": True,
-                "previous_count": current_count,
-                "distribution_date": today
-            }
         else:
-            # > 10 blocks: keep all, don't add or remove
-            inventory.last_distributions[universe_id] = today
-            flag_modified(inventory, "last_distributions")
-            db.commit()
-            
-            return {
-                "blocks_added": 0,
-                "is_first_time": False,
-                "action": "daily_keep",
-                "reason": "Inventory > 10 blocks, keeping all blocks",
-                "current_count": current_count,
-                "distribution_date": today
-            }
+            # Already at max capacity
+            distributed = 0
+        
+        inventory.last_distributions[universe_id] = today
+        flag_modified(inventory, "last_distributions")
+        db.commit()
+        
+        return {
+            "blocks_added": distributed,
+            "is_first_time": False,
+            "action": "daily_stack",
+            "previous_count": current_count,
+            "new_count": new_target,
+            "distribution_date": today
+        }
     
     @staticmethod
     def select_and_add_blocks(

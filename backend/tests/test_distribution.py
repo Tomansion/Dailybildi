@@ -139,8 +139,8 @@ class TestDailyBlockDistribution:
         
         db.close()
     
-    def test_case_3a_new_day_with_few_blocks_clears_and_adds(self, setup_test_db):
-        """Scenario 3a: New day with ≤ 10 blocks should clear and add 10 new"""
+    def test_case_3a_new_day_with_few_blocks_stacks(self, setup_test_db):
+        """Scenario 3a: New day with 3 blocks should stack to 13"""
         db = SessionLocal()
         
         # Create test user
@@ -159,18 +159,17 @@ class TestDailyBlockDistribution:
         db.commit()
         db.refresh(inventory)
         
-        # Add 8 blocks (≤ 10)
+        # Add 3 blocks
         block_models = db.query(BlockCatalog).filter(
             BlockCatalog.universe_id == settings.UNIVERSE_ID
-        ).limit(2).all()
+        ).limit(1).all()
         
-        for i, block in enumerate(block_models):
-            inv_block = InventoryBlock(
-                inventory_id=inventory.id,
-                block_catalog_id=block.id,
-                quantity=4 if i == 0 else 4
-            )
-            db.add(inv_block)
+        inv_block = InventoryBlock(
+            inventory_id=inventory.id,
+            block_catalog_id=block_models[0].id,
+            quantity=3
+        )
+        db.add(inv_block)
         db.commit()
         
         # Verify starting state
@@ -178,7 +177,7 @@ class TestDailyBlockDistribution:
         start_qty = db.query(InventoryBlock).filter(
             InventoryBlock.inventory_id == inventory.id
         ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
-        assert start_qty == 8
+        assert start_qty == 3
         
         # Distribute blocks
         result = BlockService.distribute_blocks_to_user(
@@ -193,19 +192,19 @@ class TestDailyBlockDistribution:
             InventoryBlock.inventory_id == inventory.id
         ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
         
-        assert result["action"] == "daily_reset"
+        assert result["action"] == "daily_stack"
         assert result["blocks_added"] == 10
-        assert result["cleared_old_inventory"] == True
-        assert result["previous_count"] == 8
-        assert end_qty == 10
+        assert result["previous_count"] == 3
+        assert result["new_count"] == 13
+        assert end_qty == 13
         assert inventory.last_distributions[settings.UNIVERSE_ID] == str(date.today())
         
-        print(f"✅ CASE 3a: New day with ≤ 10 blocks - Cleared {result['previous_count']}, added {result['blocks_added']}")
+        print(f"✅ CASE 3a: New day with 3 blocks - Stacked: {result['previous_count']} + {result['blocks_added']} = {result['new_count']}")
         
         db.close()
     
-    def test_case_3b_new_day_with_many_blocks_keeps_all(self, setup_test_db):
-        """Scenario 3b: New day with > 10 blocks should keep all, add nothing"""
+    def test_case_3b_new_day_with_many_blocks_stacks_to_cap(self, setup_test_db):
+        """Scenario 3b: New day with 23 blocks should stack to 30 (capped)"""
         db = SessionLocal()
         
         # Create test user
@@ -224,7 +223,7 @@ class TestDailyBlockDistribution:
         db.commit()
         db.refresh(inventory)
         
-        # Add 25 blocks (> 10)
+        # Add 23 blocks
         block_models = db.query(BlockCatalog).filter(
             BlockCatalog.universe_id == settings.UNIVERSE_ID
         ).limit(3).all()
@@ -233,7 +232,7 @@ class TestDailyBlockDistribution:
             inv_block = InventoryBlock(
                 inventory_id=inventory.id,
                 block_catalog_id=block.id,
-                quantity=8 if i < 2 else 9
+                quantity=8 if i < 2 else 7
             )
             db.add(inv_block)
         db.commit()
@@ -243,7 +242,7 @@ class TestDailyBlockDistribution:
         start_qty = db.query(InventoryBlock).filter(
             InventoryBlock.inventory_id == inventory.id
         ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
-        assert start_qty == 25
+        assert start_qty == 23
         
         # Distribute blocks
         result = BlockService.distribute_blocks_to_user(
@@ -258,13 +257,80 @@ class TestDailyBlockDistribution:
             InventoryBlock.inventory_id == inventory.id
         ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
         
-        assert result["action"] == "daily_keep"
-        assert result["blocks_added"] == 0
-        assert result["current_count"] == 25
-        assert end_qty == 25  # No blocks added, all kept
+        assert result["action"] == "daily_stack"
+        assert result["blocks_added"] == 7  # 23 + 10 = 33, but capped at 30, so only 7 added
+        assert result["previous_count"] == 23
+        assert result["new_count"] == 30
+        assert end_qty == 30
         assert inventory.last_distributions[settings.UNIVERSE_ID] == str(date.today())
         
-        print(f"✅ CASE 3b: New day with > 10 blocks - Kept all {result['current_count']} blocks, added 0")
+        print(f"✅ CASE 3b: New day with 23 blocks - Stacked: {result['previous_count']} + {result['blocks_added']} = {result['new_count']} (capped at 30)")
+        
+        db.close()
+    
+    def test_case_3c_new_day_already_at_max_adds_nothing(self, setup_test_db):
+        """Scenario 3c: New day with 30 blocks (at max) should add nothing"""
+        db = SessionLocal()
+        
+        # Create test user
+        user = User(username="test_user_3c", display_name="Test User 3c", password_hash="hashed_pass")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        # Create inventory with yesterday's distribution
+        yesterday = str(date.today() - timedelta(days=1))
+        inventory = UserInventory(
+            user_id=user.id,
+            last_distributions={settings.UNIVERSE_ID: yesterday}
+        )
+        db.add(inventory)
+        db.commit()
+        db.refresh(inventory)
+        
+        # Add 30 blocks (at max)
+        block_models = db.query(BlockCatalog).filter(
+            BlockCatalog.universe_id == settings.UNIVERSE_ID
+        ).limit(4).all()
+        
+        qty_per_block = [8, 8, 8, 6]
+        for i, block in enumerate(block_models):
+            inv_block = InventoryBlock(
+                inventory_id=inventory.id,
+                block_catalog_id=block.id,
+                quantity=qty_per_block[i]
+            )
+            db.add(inv_block)
+        db.commit()
+        
+        # Verify starting state
+        from sqlalchemy import func
+        start_qty = db.query(InventoryBlock).filter(
+            InventoryBlock.inventory_id == inventory.id
+        ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
+        assert start_qty == 30
+        
+        # Distribute blocks
+        result = BlockService.distribute_blocks_to_user(
+            db,
+            inventory.id,
+            settings.UNIVERSE_ID
+        )
+        
+        # Verify
+        db.refresh(inventory)
+        end_qty = db.query(InventoryBlock).filter(
+            InventoryBlock.inventory_id == inventory.id
+        ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
+        
+        assert result["action"] == "daily_stack"
+        assert result["blocks_added"] == 0
+        assert result["previous_count"] == 30
+        assert result["new_count"] == 30
+        assert end_qty == 30
+        assert inventory.last_distributions[settings.UNIVERSE_ID] == str(date.today())
+        
+        print(f"✅ CASE 3c: New day with 30 blocks - Already at max, added 0")
         
         db.close()
 
