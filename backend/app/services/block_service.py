@@ -1,5 +1,6 @@
 import random
-from datetime import date
+from datetime import date, datetime
+from collections import Counter
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -75,19 +76,15 @@ class BlockService:
                 [{"id": b.id, "rarity": b.rarity} for b in all_blocks]
             )
             
-            # Add the selected blocks to inventory
-            added_count = 0
-            for block_id in block_ids:
-                try:
-                    InventoryService.add_block_to_inventory(
-                        db,
-                        inventory_id=inventory_id,
-                        block_catalog_id=str(block_id),
-                        quantity=1
-                    )
-                    added_count += 1
-                except Exception as e:
-                    pass
+            # Count block IDs for batch addition
+            block_id_counts = Counter(block_ids)
+            
+            # Add all blocks in a single batch operation
+            added_count = InventoryService.add_blocks_batch(
+                db,
+                inventory.id,
+                dict(block_id_counts)
+            )
             
             inventory.last_distributions[universe_id] = today
             flag_modified(inventory, "last_distributions")
@@ -110,7 +107,7 @@ class BlockService:
                 "distribution_date": today
             }
         
-        # Case 3: New day - stack blocks up to the limit
+        # Case 3: New day(s) - stack blocks up to the limit
         # Count current inventory blocks
         current_count = db.query(InventoryBlock).filter(
             InventoryBlock.inventory_id == inventory_id
@@ -118,8 +115,14 @@ class BlockService:
             func.sum(InventoryBlock.quantity)
         ).scalar() or 0
         
-        # Calculate new target: add DAILY_BLOCKS_COUNT but cap at INITIAL_BLOCKS_COUNT
-        new_target = min(current_count + settings.DAILY_BLOCKS_COUNT, settings.INITIAL_BLOCKS_COUNT)
+        # Calculate days passed since last distribution
+        last_dist_date = datetime.strptime(last_distribution_date, "%Y-%m-%d").date()
+        today_date = date.today()
+        days_passed = (today_date - last_dist_date).days
+        
+        # Calculate blocks to add: 10 per day, but cap total at INITIAL_BLOCKS_COUNT
+        blocks_to_add_per_day = settings.DAILY_BLOCKS_COUNT * days_passed
+        new_target = min(current_count + blocks_to_add_per_day, settings.INITIAL_BLOCKS_COUNT)
         blocks_to_add = new_target - current_count
         
         if blocks_to_add > 0:
@@ -144,6 +147,7 @@ class BlockService:
             "action": "daily_stack",
             "previous_count": current_count,
             "new_count": new_target,
+            "days_passed": days_passed,
             "distribution_date": today
         }
     
@@ -154,24 +158,34 @@ class BlockService:
         blocks: list,
         count: int
     ) -> int:
-        """Select and add random blocks to inventory using weighted selection"""
+        """Select and add random blocks to inventory using weighted selection in batch"""
         from app.services.inventory_service import InventoryService
         
         if not blocks:
             raise ValueError("No blocks available")
         
-        distributed = 0
-        for _ in range(count):
-            selected_block = BlockService.select_random_block(blocks)
-            InventoryService.add_block_to_inventory(
-                db,
-                inventory_id=inventory_id,
-                block_catalog_id=selected_block.id,
-                quantity=1
-            )
-            distributed += 1
+        # Create weighted selection based on rarity for all blocks at once
+        weights = []
+        for block in blocks:
+            rarity_weight = settings.RARITY_WEIGHTS.get(block.rarity, 1)
+            weights.append(rarity_weight)
         
-        return distributed
+        # Select all blocks at once using weighted selection
+        selected_indices = random.choices(
+            range(len(blocks)),
+            weights=weights,
+            k=count
+        )
+        
+        # Count occurrences of each block ID
+        block_id_counts = Counter(blocks[i].id for i in selected_indices)
+        
+        # Add all blocks in a single batch operation
+        return InventoryService.add_blocks_batch(
+            db,
+            inventory_id,
+            dict(block_id_counts)
+        )
 
     @staticmethod
     def select_random_block(blocks: list):

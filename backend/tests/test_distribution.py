@@ -333,6 +333,138 @@ class TestDailyBlockDistribution:
         print(f"✅ CASE 3c: New day with 30 blocks - Already at max, added 0")
         
         db.close()
+    
+    def test_case_4a_missed_2_days_gets_20_blocks(self, setup_test_db):
+        """Scenario 4a: User who didn't connect for 2 days should receive 20 blocks (2×10)"""
+        db = SessionLocal()
+        
+        # Create test user
+        user = User(username="test_user_4a", display_name="Test User 4a", password_hash="hashed_pass")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        # Create inventory with distribution 2 days ago, no blocks
+        two_days_ago = str(date.today() - timedelta(days=2))
+        inventory = UserInventory(
+            user_id=user.id,
+            last_distributions={settings.UNIVERSE_ID: two_days_ago}
+        )
+        db.add(inventory)
+        db.commit()
+        db.refresh(inventory)
+        
+        # Distribute blocks
+        result = BlockService.distribute_blocks_to_user(
+            db,
+            inventory.id,
+            settings.UNIVERSE_ID
+        )
+        
+        # Verify
+        from sqlalchemy import func
+        end_qty = db.query(InventoryBlock).filter(
+            InventoryBlock.inventory_id == inventory.id
+        ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
+        
+        assert result["action"] == "daily_stack"
+        assert result["blocks_added"] == 20  # 2 days × 10 blocks
+        assert result["previous_count"] == 0
+        assert result["new_count"] == 20
+        assert end_qty == 20
+        assert inventory.last_distributions[settings.UNIVERSE_ID] == str(date.today())
+        
+        print(f"✅ CASE 4a: Missed 2 days - Caught up: {result['previous_count']} + {result['blocks_added']} = {result['new_count']}")
+        
+        db.close()
+    
+    def test_case_4b_missed_3_days_gets_30_blocks(self, setup_test_db):
+        """Scenario 4b: User who didn't connect for 3 days should receive 30 blocks (capped)"""
+        db = SessionLocal()
+        
+        # Create test user
+        user = User(username="test_user_4b", display_name="Test User 4b", password_hash="hashed_pass")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        # Create inventory with distribution 3 days ago, no blocks
+        three_days_ago = str(date.today() - timedelta(days=3))
+        inventory = UserInventory(
+            user_id=user.id,
+            last_distributions={settings.UNIVERSE_ID: three_days_ago}
+        )
+        db.add(inventory)
+        db.commit()
+        db.refresh(inventory)
+        
+        # Distribute blocks
+        result = BlockService.distribute_blocks_to_user(
+            db,
+            inventory.id,
+            settings.UNIVERSE_ID
+        )
+        
+        # Verify
+        from sqlalchemy import func
+        end_qty = db.query(InventoryBlock).filter(
+            InventoryBlock.inventory_id == inventory.id
+        ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
+        
+        assert result["action"] == "daily_stack"
+        assert result["blocks_added"] == 30  # 3 days × 10 blocks = 30, capped at 30
+        assert result["previous_count"] == 0
+        assert result["new_count"] == 30
+        assert end_qty == 30
+        assert inventory.last_distributions[settings.UNIVERSE_ID] == str(date.today())
+        
+        print(f"✅ CASE 4b: Missed 3 days - Caught up to max: {result['previous_count']} + {result['blocks_added']} = {result['new_count']}")
+        
+        db.close()
+    
+    def test_case_4c_missed_5_days_gets_30_blocks_capped(self, setup_test_db):
+        """Scenario 4c: User who didn't connect for 5 days should receive 30 blocks (capped)"""
+        db = SessionLocal()
+        
+        # Create test user
+        user = User(username="test_user_4c", display_name="Test User 4c", password_hash="hashed_pass")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        # Create inventory with distribution 5 days ago, no blocks
+        five_days_ago = str(date.today() - timedelta(days=5))
+        inventory = UserInventory(
+            user_id=user.id,
+            last_distributions={settings.UNIVERSE_ID: five_days_ago}
+        )
+        db.add(inventory)
+        db.commit()
+        db.refresh(inventory)
+        
+        # Distribute blocks
+        result = BlockService.distribute_blocks_to_user(
+            db,
+            inventory.id,
+            settings.UNIVERSE_ID
+        )
+        
+        # Verify
+        from sqlalchemy import func
+        end_qty = db.query(InventoryBlock).filter(
+            InventoryBlock.inventory_id == inventory.id
+        ).with_entities(func.sum(InventoryBlock.quantity)).scalar() or 0
+        
+        assert result["action"] == "daily_stack"
+        assert result["blocks_added"] == 30  # 5 days × 10 blocks = 50, but capped at 30
+        assert result["previous_count"] == 0
+        assert result["new_count"] == 30
+        assert end_qty == 30
+        assert inventory.last_distributions[settings.UNIVERSE_ID] == str(date.today())
+        
+        print(f"✅ CASE 4c: Missed 5 days - Caught up to max: {result['previous_count']} + {result['blocks_added']} = {result['new_count']} (would be 50, capped at 30)")
+        
+        db.close()
 
 
 if __name__ == "__main__":

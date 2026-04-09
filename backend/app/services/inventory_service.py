@@ -86,6 +86,59 @@ class InventoryService:
             raise
 
     @staticmethod
+    def add_blocks_batch(
+        db: Session,
+        inventory_id: str,
+        blocks_to_add: dict
+    ) -> int:
+        """
+        Add multiple blocks to inventory in a single batch operation.
+        
+        Args:
+            db: Database session
+            inventory_id: User's inventory ID
+            blocks_to_add: Dict of {block_catalog_id: quantity}
+            
+        Returns:
+            Total quantity added
+        """
+        if not blocks_to_add:
+            return 0
+        
+        # Get all existing blocks for this inventory in one query
+        existing_blocks = db.query(InventoryBlock).filter(
+            InventoryBlock.inventory_id == inventory_id,
+            InventoryBlock.block_catalog_id.in_(blocks_to_add.keys())
+        ).all()
+        
+        # Create a map of existing blocks by block_catalog_id
+        existing_map = {block.block_catalog_id: block for block in existing_blocks}
+        
+        # Update existing blocks and collect new ones to insert
+        new_blocks = []
+        for block_id, quantity in blocks_to_add.items():
+            if block_id in existing_map:
+                # Update existing block
+                existing_map[block_id].quantity += quantity
+            else:
+                # Create new block entry
+                new_blocks.append(InventoryBlock(
+                    inventory_id=inventory_id,
+                    block_catalog_id=block_id,
+                    quantity=quantity
+                ))
+        
+        # Add all new blocks at once
+        if new_blocks:
+            db.add_all(new_blocks)
+        
+        # Single commit for all changes
+        db.commit()
+        
+        # Return total quantity added
+        return sum(blocks_to_add.values())
+
+    @staticmethod
     def remove_block_from_inventory(
         db: Session,
         user_id: str,
