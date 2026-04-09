@@ -28,16 +28,40 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
 def list_universes(db: Session = Depends(get_db), user_id: str = Depends(get_current_user_id)):
     """Get list of all available universes with user's available and placed block counts"""
     try:
+        from app.services.block_service import BlockService
+        
         universes = UniverseService.list_universes()
         
-        # Get user's inventory total (available blocks)
+        # Get user's inventory
         inventory = db.query(UserInventory).filter(
             UserInventory.user_id == user_id
         ).first()
         
-        total_available_blocks = 0
-        if inventory and inventory.blocks:
-            total_available_blocks = sum(block.quantity for block in inventory.blocks)
+        if not inventory:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User inventory not found"
+            )
+        
+        # Distribute blocks for each universe first
+        for universe in universes:
+            try:
+                BlockService.distribute_blocks_to_user(
+                    db,
+                    inventory.id,
+                    universe["id"]
+                )
+            except Exception:
+                # Continue even if distribution fails for a universe
+                pass
+        
+        # Now get the total available blocks after distribution
+        from sqlalchemy import func
+        from app.models import InventoryBlock
+        
+        total_available_blocks = db.query(func.sum(InventoryBlock.quantity)).filter(
+            InventoryBlock.inventory_id == inventory.id
+        ).scalar() or 0
         
         # For each universe, include both available and placed block counts
         for universe in universes:
@@ -60,6 +84,8 @@ def list_universes(db: Session = Depends(get_db), user_id: str = Depends(get_cur
             "count": len(universes),
             "total_available_blocks": total_available_blocks
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
