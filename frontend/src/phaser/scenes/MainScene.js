@@ -22,6 +22,11 @@ export class MainScene extends Phaser.Scene {
     this.parallaxLayers = []
     this.worldBounds = { width: 0, height: 0 }
 
+    // Phantom block transformation state
+    this.phantomBlockRotation = 0
+    this.phantomBlockFlipX = false
+    this.phantomBlockFlipY = false
+
     // Callbacks to communicate with Vue
     this.onBlockPlacedCallback = null
     this.onBlockSelectedCallback = null
@@ -154,17 +159,29 @@ export class MainScene extends Phaser.Scene {
 
     // Handle F key - rotate selected block
     this.input.keyboard.on('keydown-R', () => {
-      this.rotateSelectedBlock()
+      if (this.selectedBlockData) {
+        this.rotatePhantomBlock()
+      } else {
+        this.rotateSelectedBlock()
+      }
     })
 
     // Handle H key - flip horizontal
     this.input.keyboard.on('keydown-H', () => {
-      this.flipSelectedBlockHorizontal()
+      if (this.selectedBlockData) {
+        this.flipPhantomBlockHorizontal()
+      } else {
+        this.flipSelectedBlockHorizontal()
+      }
     })
 
     // Handle V key - flip vertical
     this.input.keyboard.on('keydown-V', () => {
-      this.flipSelectedBlockVertical()
+      if (this.selectedBlockData) {
+        this.flipPhantomBlockVertical()
+      } else {
+        this.flipSelectedBlockVertical()
+      }
     })
 
     // Handle block drag
@@ -359,10 +376,18 @@ export class MainScene extends Phaser.Scene {
     this.phantomBlock.setOrigin(0.5, 0.5)
     this.phantomBlock.setAlpha(0.5)
     this.phantomBlock.setDepth(1000000)
+    
+    // Apply stored transformation state
+    this.phantomBlock.setAngle(this.phantomBlockRotation)
+    this.phantomBlock.setFlipX(this.phantomBlockFlipX)
+    this.phantomBlock.setFlipY(this.phantomBlockFlipY)
   }
 
   cancelBlockPlacement() {
     this.selectedBlockData = null
+    this.phantomBlockRotation = 0
+    this.phantomBlockFlipX = false
+    this.phantomBlockFlipY = false
     if (this.phantomBlock) {
       this.phantomBlock.destroy()
       this.phantomBlock = null
@@ -383,7 +408,12 @@ export class MainScene extends Phaser.Scene {
       this.onBlockPlacedCallback(
         this.selectedBlockData.blockCatalogKey,
         grid.gridX,
-        grid.gridY
+        grid.gridY,
+        {
+          rotation: this.phantomBlockRotation,
+          flipX: this.phantomBlockFlipX,
+          flipY: this.phantomBlockFlipY
+        }
       )
     }
   }
@@ -400,7 +430,12 @@ export class MainScene extends Phaser.Scene {
       this.onBlockPlacedCallback(
         blockData.blockCatalogKey,
         grid.gridX,
-        grid.gridY
+        grid.gridY,
+        {
+          rotation: 0,
+          flipX: false,
+          flipY: false
+        }
       )
     }
   }
@@ -477,6 +512,13 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  rotatePhantomBlock() {
+    if (!this.phantomBlock) return
+
+    this.phantomBlockRotation = (this.phantomBlockRotation + 90) % 360
+    this.phantomBlock.setAngle(this.phantomBlockRotation)
+  }
+
   flipSelectedBlockHorizontal() {
     if (!this.selectedBlock) return
 
@@ -490,6 +532,13 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  flipPhantomBlockHorizontal() {
+    if (!this.phantomBlock) return
+
+    this.phantomBlockFlipX = !this.phantomBlockFlipX
+    this.phantomBlock.setFlipX(this.phantomBlockFlipX)
+  }
+
   flipSelectedBlockVertical() {
     if (!this.selectedBlock) return
 
@@ -501,6 +550,13 @@ export class MainScene extends Phaser.Scene {
         flipY: flipY
       })
     }
+  }
+
+  flipPhantomBlockVertical() {
+    if (!this.phantomBlock) return
+
+    this.phantomBlockFlipY = !this.phantomBlockFlipY
+    this.phantomBlock.setFlipY(this.phantomBlockFlipY)
   }
 
   goHome() {

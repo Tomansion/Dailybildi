@@ -58,7 +58,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
   }
 
-  const placeBlock = async (blockCatalogKey, gridX, gridY) => {
+  const placeBlock = async (blockCatalogKey, gridX, gridY, transformations = {}) => {
     try {
       // Find the block catalog ID from the inventory
       const block = inventory.value?.blocks?.find(
@@ -74,9 +74,9 @@ export const useInventoryStore = defineStore('inventory', () => {
         grid_x: gridX,
         grid_y: gridY,
         z_order: 0,
-        rotation: 0,
-        flip_x: false,
-        flip_y: false
+        rotation: transformations.rotation ?? 0,
+        flip_x: transformations.flipX ?? false,
+        flip_y: transformations.flipY ?? false
       })
       
       return response.data

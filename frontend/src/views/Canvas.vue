@@ -16,7 +16,7 @@
       ></div>
 
       <BlockActionButtons
-        :hasSelectedBlock="hasSelectedBlock"
+        :hasSelectedBlock="hasSelectedBlock || isInPlacementMode"
         @rotate="handleRotate"
         @flip-horizontal="handleFlipHorizontal"
         @flip-vertical="handleFlipVertical"
@@ -50,6 +50,8 @@ const selectedBlockForPlacement = ref(null);
 
 let phaserGame = null;
 let mainScene = null;
+
+const isInPlacementMode = computed(() => !!selectedBlockForPlacement.value);
 
 const inventoryBlocks = computed(() => {
   const blocks = inventoryStore.inventory?.blocks || [];
@@ -149,26 +151,42 @@ const cancelBlockPlacement = () => {
 
 const handleRotate = () => {
   if (mainScene) {
-    mainScene.rotateSelectedBlock();
+    if (isInPlacementMode.value) {
+      mainScene.rotatePhantomBlock();
+    } else {
+      mainScene.rotateSelectedBlock();
+    }
   }
 };
 
 const handleFlipHorizontal = () => {
   if (mainScene) {
-    mainScene.flipSelectedBlockHorizontal();
+    if (isInPlacementMode.value) {
+      mainScene.flipPhantomBlockHorizontal();
+    } else {
+      mainScene.flipSelectedBlockHorizontal();
+    }
   }
 };
 
 const handleFlipVertical = () => {
   if (mainScene) {
-    mainScene.flipSelectedBlockVertical();
+    if (isInPlacementMode.value) {
+      mainScene.flipPhantomBlockVertical();
+    } else {
+      mainScene.flipSelectedBlockVertical();
+    }
   }
 };
 
 const handleDiscard = () => {
   if (mainScene) {
-    mainScene.removeSelectedBlock();
-    hasSelectedBlock.value = false;
+    if (isInPlacementMode.value) {
+      cancelBlockPlacement();
+    } else {
+      mainScene.removeSelectedBlock();
+      hasSelectedBlock.value = false;
+    }
   }
 };
 
@@ -227,32 +245,35 @@ onMounted(async () => {
     const allBlockImages = Array.from(blockImageMap.values());
 
     // Setup callbacks
-    mainScene.setOnBlockPlaced(async (blockCatalogKey, gridX, gridY) => {
+    mainScene.setOnBlockPlaced(async (blockCatalogKey, gridX, gridY, transformations) => {
       try {
-        await inventoryStore.placeBlock(blockCatalogKey, gridX, gridY);
+        await inventoryStore.placeBlock(blockCatalogKey, gridX, gridY, transformations);
         // Reload inventory and blocks
         await inventoryStore.fetchInventory();
         const updated = await inventoryStore.fetchWorldBlocks();
-        if (updated && mainScene) {
-          mainScene.loadBlocks(updated);
-          // Select the last placed block (it's the one at the end of the updated list)
-          if (updated.length > 0) {
-            const lastBlock = updated[updated.length - 1];
-            mainScene.selectBlockByKey(lastBlock.blockKey);
-            hasSelectedBlock.value = true;
-          }
-        }
+        
         // Check if the block type is still in inventory
         const blockStillInInventory = inventoryBlocks.value.some(
           (block) =>
             block.blockCatalogKey === blockCatalogKey && block.quantity > 0,
         );
+        
+        if (updated && mainScene) {
+          mainScene.loadBlocks(updated);
+          // Only select the placed block if it's the last one (no more in inventory)
+          // Otherwise keep phantom active for quick repeated placement
+          if (!blockStillInInventory && updated.length > 0) {
+            const lastBlock = updated[updated.length - 1];
+            mainScene.selectBlockByKey(lastBlock.blockKey);
+            hasSelectedBlock.value = true;
+          }
+        }
 
-        // Only cancel placement if the block is no longer in inventory (was the last one)
+        // Only cancel placement if the block is no longer in inventory
         if (!blockStillInInventory) {
           cancelBlockPlacement();
         }
-        // Otherwise keep it selected for placing more of the same type
+        // Otherwise keep phantom active for placing more of the same type
       } catch (err) {
         console.error("Failed to place block:", err);
       }
