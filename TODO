@@ -22,15 +22,12 @@
 ✔ Add zoom unzoom btn @done(26-04-05 21:14)
 ✔ Add universe creation guide @done(26-04-05 21:40)
 ✔ Improve Readme @done(26-04-05 21:46)
+✔ Fix mobile world load not working in view mode @done(26-04-09 15:04)
+✔ Fix nb available blocks not updating before entering the world @done(26-04-09 15:04)
+✔ Add to portfolio @done(26-04-09 15:04)
 
-☐ Fix mobile world load not working in view mode
 ☐ Add universe card (color, font, icon, bg)
-☐ Fix nb available blocks not updating before entering the world
-☐ Add to portfolio
-☐ Display demo image
 ☐ Generate & display a preview of the world. Or canvas rendering ?
-☐ On drag & wheel, rotate
-☐ Tutorial
 ☐ Ctrl Z
 ☐ Implement square selection and movement of blocks
 ☐ Make custom identicon

@@ -198,6 +198,36 @@ const handleZoomOut = () => {
   if (mainScene) mainScene.zoomOut();
 };
 
+const selectNextBlock = (direction = 1) => {
+  if (inventoryBlocks.value.length === 0 || !selectedBlockForPlacement.value) {
+    return;
+  }
+
+  // Find the current block index
+  const currentIndex = inventoryBlocks.value.findIndex(
+    (block) =>
+      block.blockCatalogKey === selectedBlockForPlacement.value.blockCatalogKey,
+  );
+
+  // Get the next block (with wrapping) - direction: 1 for forward, -1 for backward
+  const nextIndex =
+    (currentIndex + direction + inventoryBlocks.value.length) %
+    inventoryBlocks.value.length;
+  const nextBlock = inventoryBlocks.value[nextIndex];
+
+  if (nextBlock) {
+    handleBlockSelect(nextBlock);
+  }
+};
+
+const handleKeyDown = (event) => {
+  if (event.key === "Tab" && selectedBlockForPlacement.value) {
+    event.preventDefault();
+    const direction = event.shiftKey ? -1 : 1;
+    selectNextBlock(direction);
+  }
+};
+
 onMounted(async () => {
   try {
     // Fetch user's inventory
@@ -244,40 +274,50 @@ onMounted(async () => {
 
     const allBlockImages = Array.from(blockImageMap.values());
 
-    // Setup callbacks
-    mainScene.setOnBlockPlaced(async (blockCatalogKey, gridX, gridY, transformations) => {
-      try {
-        await inventoryStore.placeBlock(blockCatalogKey, gridX, gridY, transformations);
-        // Reload inventory and blocks
-        await inventoryStore.fetchInventory();
-        const updated = await inventoryStore.fetchWorldBlocks();
-        
-        // Check if the block type is still in inventory
-        const blockStillInInventory = inventoryBlocks.value.some(
-          (block) =>
-            block.blockCatalogKey === blockCatalogKey && block.quantity > 0,
-        );
-        
-        if (updated && mainScene) {
-          mainScene.loadBlocks(updated);
-          // Only select the placed block if it's the last one (no more in inventory)
-          // Otherwise keep phantom active for quick repeated placement
-          if (!blockStillInInventory && updated.length > 0) {
-            const lastBlock = updated[updated.length - 1];
-            mainScene.selectBlockByKey(lastBlock.blockKey);
-            hasSelectedBlock.value = true;
-          }
-        }
+    // Setup keyboard shortcuts
+    window.addEventListener("keydown", handleKeyDown);
 
-        // Only cancel placement if the block is no longer in inventory
-        if (!blockStillInInventory) {
-          cancelBlockPlacement();
+    // Setup callbacks
+    mainScene.setOnBlockPlaced(
+      async (blockCatalogKey, gridX, gridY, transformations) => {
+        try {
+          await inventoryStore.placeBlock(
+            blockCatalogKey,
+            gridX,
+            gridY,
+            transformations,
+          );
+          // Reload inventory and blocks
+          await inventoryStore.fetchInventory();
+          const updated = await inventoryStore.fetchWorldBlocks();
+
+          // Check if the block type is still in inventory
+          const blockStillInInventory = inventoryBlocks.value.some(
+            (block) =>
+              block.blockCatalogKey === blockCatalogKey && block.quantity > 0,
+          );
+
+          if (updated && mainScene) {
+            mainScene.loadBlocks(updated);
+            // Only select the placed block if it's the last one (no more in inventory)
+            // Otherwise keep phantom active for quick repeated placement
+            if (!blockStillInInventory && updated.length > 0) {
+              const lastBlock = updated[updated.length - 1];
+              mainScene.selectBlockByKey(lastBlock.blockKey);
+              hasSelectedBlock.value = true;
+            }
+          }
+
+          // Only cancel placement if the block is no longer in inventory
+          if (!blockStillInInventory) {
+            cancelBlockPlacement();
+          }
+          // Otherwise keep phantom active for placing more of the same type
+        } catch (err) {
+          console.error("Failed to place block:", err);
         }
-        // Otherwise keep phantom active for placing more of the same type
-      } catch (err) {
-        console.error("Failed to place block:", err);
-      }
-    });
+      },
+    );
 
     mainScene.setOnBlockSelected((blockKey) => {
       hasSelectedBlock.value = true;
@@ -319,6 +359,9 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  // Clean up keyboard listener
+  window.removeEventListener("keydown", handleKeyDown);
+
   if (phaserGame) {
     phaserGame.destroy();
     phaserGame = null;
@@ -369,7 +412,6 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   border: 1px solid var(--border);
 }
-
 
 .loading,
 .error-message {

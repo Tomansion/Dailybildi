@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
 
 .block-card.selected {
   transform: scale(1.05);
-  border: 1px solid red;
+  border: 3px solid red;
 }
 
 .block-image {
