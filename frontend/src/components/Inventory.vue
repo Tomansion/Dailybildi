@@ -283,7 +283,30 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .inventory-container {
     width: 100%;
-    height: inherit;
+    height: auto;
+  }
+
+  .inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0px;
+  }
+  
+  .inventory-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0 10px;
+  }
+  .timer {
+    font-size: 0.7rem;
+    margin: 0;
+  }
+  .timer-label {
+    margin: 0;
   }
 
   .blocks-grid {
