@@ -63,6 +63,7 @@ def _enrich_world_for_community(world):
         universe_config = UniverseService.get_universe_config(world.universe_id)
         world.universeConfig = {
             "backgroundColor": universe_config.get("backgroundColor", "#ffffff"),
+            "textColor": universe_config.get("textColor", "#000000"),
             "blockSize": universe_config.get("blockSize", 64),
             "worldImageScale": universe_config.get("worldImageScale", 1.0)
         }

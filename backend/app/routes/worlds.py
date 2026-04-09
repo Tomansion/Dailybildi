@@ -77,6 +77,7 @@ def get_user_world(db: Session = Depends(get_db), user_id: str = Depends(get_cur
             universe_config = UniverseService.get_universe_config(world.universe_id)
             world.universeConfig = {
                 "backgroundColor": universe_config.get("backgroundColor", "#ffffff"),
+                "textColor": universe_config.get("textColor"),
                 "blockSize": universe_config.get("blockSize", 64),
                 "worldImageScale": universe_config.get("worldImageScale", 1.0)
             }
@@ -182,6 +183,7 @@ def get_world(world_id: str, db: Session = Depends(get_db)):
             universe_config = UniverseService.get_universe_config(world.universe_id)
             world.universeConfig = {
                 "backgroundColor": universe_config.get("backgroundColor", "#ffffff"),
+                "textColor": universe_config.get("textColor"),
                 "blockSize": universe_config.get("blockSize", 64),
                 "worldImageScale": universe_config.get("worldImageScale", 1.0)
             }

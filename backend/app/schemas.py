@@ -47,6 +47,7 @@ class BlockCatalogResponse(BaseModel):
 class UniverseConfigResponse(BaseModel):
     """Configuration for a universe"""
     backgroundColor: str
+    textColor: Optional[str] = None
     blockSize: int
     worldImageScale: float = 1.0
 

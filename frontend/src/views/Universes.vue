@@ -19,6 +19,13 @@
           class="universe-card"
           @click="enterUniverse(universe.id)"
         >
+          <WorldPreview
+            :world="universe.world"
+            :universe-config="universe"
+            :canvas-width="240"
+            :canvas-height="170"
+            class="world-preview"
+          />
           <h3>{{ universe.name }}</h3>
           <div class="universe-stats">
             <p>
@@ -57,12 +64,14 @@ import api from "@/services/api";
 import { useRouter } from "vue-router";
 import BaseCard from "@/components/base/BaseCard.vue";
 import BaseButton from "@/components/base/BaseButton.vue";
+import WorldPreview from '@/components/WorldPreview.vue'
 
 export default {
   name: "Universes",
   components: {
     BaseCard,
-    BaseButton
+    BaseButton,
+    WorldPreview
   },
   data() {
     return {

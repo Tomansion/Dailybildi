@@ -3,6 +3,9 @@
     <canvas
       ref="canvas"
       class="world-preview-canvas"
+      :style="{
+        borderColor: universeConfig?.textColor || 'var(--border)',
+      }"
       :width="canvasWidth"
       :height="canvasHeight"
     ></canvas>

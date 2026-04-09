@@ -1,5 +1,6 @@
 {
   "backgroundColor": "#fff6e7",
+  "textColor": "#000000",
   "worldImageScale": 0.5,
   "blockSize": 40,
   "worldImages": [

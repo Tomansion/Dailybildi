@@ -4,7 +4,9 @@
       <div class="community-header">
         <div>
           <h1>Community</h1>
-          <p class="header-subtitle">Explore and like other players' creations</p>
+          <p class="header-subtitle">
+            Explore and like other players' creations
+          </p>
         </div>
         <div class="sort-controls">
           <label for="sort">Sort by:</label>
@@ -27,7 +29,11 @@
           :key="world.id"
           class="world-card"
           @click="viewWorld(world.id)"
-          :style="{ backgroundColor: world.universeConfig?.backgroundColor || 'var(--surface)' }"
+          :style="{
+            backgroundColor:
+              world.universeConfig?.backgroundColor || 'var(--surface)',
+            color: world.universeConfig?.textColor || 'var(--text-primary)',
+          }"
         >
           <WorldPreview
             :world="world"
@@ -39,22 +45,26 @@
           <div class="card-content">
             <div class="card-header">
               <div>
-                <h3>{{ world.user?.display_name || 'Unknown User' }}</h3>
+                <h3>{{ world.user?.display_name || "Unknown User" }}</h3>
                 <p class="world-date">{{ formatDate(world.created_at) }}</p>
               </div>
             </div>
             <div class="world-stats">
               <span class="stat">
-                <img src="/icons/bricks.svg" alt="placed blocks" class="stat-icon" />
+                <img
+                  src="/icons/bricks.svg"
+                  alt="placed blocks"
+                  class="stat-icon"
+                />
                 {{ world.placed_blocks.length }}
               </span>
-                <LikeButton
+              <LikeButton
                 :world-id="world.id"
                 :like-count="world.like_count"
                 :is-liked="world.liked"
                 @update:like-count="world.like_count = $event"
                 @update:is-liked="world.liked = $event"
-                />
+              />
             </div>
           </div>
         </BaseCard>
@@ -70,89 +80,89 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import api from '../services/api'
-import BaseCard from '../components/base/BaseCard.vue'
-import BaseButton from '../components/base/BaseButton.vue'
-import WorldPreview from '../components/WorldPreview.vue'
-import LikeButton from '../components/LikeButton.vue'
+import { ref, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
+import api from "../services/api";
+import BaseCard from "../components/base/BaseCard.vue";
+import BaseButton from "../components/base/BaseButton.vue";
+import WorldPreview from "../components/WorldPreview.vue";
+import LikeButton from "../components/LikeButton.vue";
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const authStore = useAuthStore();
 
-const isAuthenticated = computed(() => authStore.isAuthenticated)
+const isAuthenticated = computed(() => authStore.isAuthenticated);
 
-const worlds = ref([])
-const loading = ref(false)
-const error = ref(null)
-const sortBy = ref('likes')
-const skip = ref(0)
-const limit = ref(20)
-const hasMore = ref(false)
-const total = ref(0)
+const worlds = ref([]);
+const loading = ref(false);
+const error = ref(null);
+const sortBy = ref("likes");
+const skip = ref(0);
+const limit = ref(20);
+const hasMore = ref(false);
+const total = ref(0);
 
 const fetchWorlds = async () => {
-  loading.value = true
-  error.value = null
-  skip.value = 0
+  loading.value = true;
+  error.value = null;
+  skip.value = 0;
 
   try {
-    const response = await api.get('/community/worlds', {
+    const response = await api.get("/community/worlds", {
       params: {
         skip: skip.value,
         limit: limit.value,
-        sort_by: sortBy.value
-      }
-    })
+        sort_by: sortBy.value,
+      },
+    });
 
-    worlds.value = response.data.items
-    total.value = response.data.total
-    hasMore.value = response.data.has_more
+    worlds.value = response.data.items;
+    total.value = response.data.total;
+    hasMore.value = response.data.has_more;
   } catch (err) {
-    error.value = 'Failed to load worlds'
-    console.error(err)
+    error.value = "Failed to load worlds";
+    console.error(err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const loadMore = async () => {
-  loading.value = true
-  skip.value += limit.value
+  loading.value = true;
+  skip.value += limit.value;
 
   try {
-    const response = await api.get('/community/worlds', {
+    const response = await api.get("/community/worlds", {
       params: {
         skip: skip.value,
         limit: limit.value,
-        sort_by: sortBy.value
-      }
-    })
+        sort_by: sortBy.value,
+      },
+    });
 
-    worlds.value.push(...response.data.items)
-    hasMore.value = response.data.has_more
+    worlds.value.push(...response.data.items);
+    hasMore.value = response.data.has_more;
   } catch (err) {
-    error.value = 'Failed to load more worlds'
-    console.error(err)
+    error.value = "Failed to load more worlds";
+    console.error(err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const viewWorld = (worldId) => {
-  router.push(`/community/${worldId}`)
-}
+  router.push(`/community/${worldId}`);
+};
 
 const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString()
-}
+  const date = new Date(dateString);
+  return date.toLocaleDateString();
+};
 
 onMounted(() => {
-  fetchWorlds()
-})
+  fetchWorlds();
+});
 </script>
 
 <style scoped>
