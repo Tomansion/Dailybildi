@@ -27,26 +27,36 @@
           :key="world.id"
           class="world-card"
           @click="viewWorld(world.id)"
+          :style="{ backgroundColor: world.universeConfig?.backgroundColor || 'var(--surface)' }"
         >
-          <div class="card-header">
-            <div>
-              <h3>{{ world.user?.display_name || 'Unknown User' }}</h3>
-              <p class="world-date">{{ formatDate(world.created_at) }}</p>
+          <WorldPreview
+            :world="world"
+            :universe-config="world.universeConfig"
+            :canvas-width="240"
+            :canvas-height="170"
+            class="world-preview"
+          />
+          <div class="card-content">
+            <div class="card-header">
+              <div>
+                <h3>{{ world.user?.display_name || 'Unknown User' }}</h3>
+                <p class="world-date">{{ formatDate(world.created_at) }}</p>
+              </div>
+            </div>
+            <div class="world-stats">
+              <span class="stat">
+                <img src="/icons/bricks.svg" alt="placed blocks" class="stat-icon" />
+                {{ world.placed_blocks.length }}
+              </span>
+                <LikeButton
+                :world-id="world.id"
+                :like-count="world.like_count"
+                :is-liked="world.liked"
+                @update:like-count="world.like_count = $event"
+                @update:is-liked="world.liked = $event"
+                />
             </div>
           </div>
-          <div class="world-stats">
-            <span class="stat">
-              <img src="/icons/bricks.svg" alt="placed blocks" class="stat-icon" />
-              {{ world.placed_blocks.length }}
-            </span>
-          </div>
-          <LikeButton
-            :world-id="world.id"
-            :like-count="world.like_count"
-            :is-liked="world.liked"
-            @update:like-count="world.like_count = $event"
-            @update:is-liked="world.liked = $event"
-          />
         </BaseCard>
       </div>
 
@@ -66,6 +76,7 @@ import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import BaseCard from '../components/base/BaseCard.vue'
 import BaseButton from '../components/base/BaseButton.vue'
+import WorldPreview from '../components/WorldPreview.vue'
 import LikeButton from '../components/LikeButton.vue'
 
 const router = useRouter()
@@ -216,14 +227,25 @@ h1 {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  align-items: self-start;
-  gap: 0.75rem;
+  gap: 0;
+  overflow: hidden;
 }
 
 .world-card:hover {
   border-color: var(--text-primary);
   transform: translateY(-2px);
+}
+
+.world-preview {
+  width: 100%;
+}
+
+.card-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
 }
 
 .world-card h3 {

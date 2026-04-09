@@ -40,7 +40,9 @@ def _enrich_placed_blocks_with_metadata(world):
                     'block_id': block.block_id,
                     'layer': block.layer,
                     'rarity': block.rarity,
-                    'image_path': block.image_path
+                    'image_path': block.image_path,
+                    'width': block.width,
+                    'height': block.height
                 }
         
         # Enrich each placed block
@@ -50,6 +52,8 @@ def _enrich_placed_blocks_with_metadata(world):
             block.layer = metadata.get('layer', 0)
             block.rarity = metadata.get('rarity', 0)
             block.image_path = metadata.get('image_path', '')
+            block.width = metadata.get('width', 1)
+            block.height = metadata.get('height', 1)
     except Exception as e:
         # Log error but don't fail - blocks will just have empty metadata
         print(f"Error enriching placed blocks: {str(e)}")
@@ -67,6 +71,17 @@ def get_user_world(db: Session = Depends(get_db), user_id: str = Depends(get_cur
         
         # Enrich placed blocks with metadata from filesystem
         world = _enrich_placed_blocks_with_metadata(world)
+        
+        # Add universe config
+        try:
+            universe_config = UniverseService.get_universe_config(world.universe_id)
+            world.universeConfig = {
+                "backgroundColor": universe_config.get("backgroundColor", "#ffffff"),
+                "blockSize": universe_config.get("blockSize", 64),
+                "worldImageScale": universe_config.get("worldImageScale", 1.0)
+            }
+        except Exception as e:
+            print(f"Error loading universe config: {str(e)}")
         
         return world
     except HTTPException:
@@ -161,6 +176,17 @@ def get_world(world_id: str, db: Session = Depends(get_db)):
         
         # Enrich placed blocks with metadata from filesystem
         world = _enrich_placed_blocks_with_metadata(world)
+        
+        # Add universe config
+        try:
+            universe_config = UniverseService.get_universe_config(world.universe_id)
+            world.universeConfig = {
+                "backgroundColor": universe_config.get("backgroundColor", "#ffffff"),
+                "blockSize": universe_config.get("blockSize", 64),
+                "worldImageScale": universe_config.get("worldImageScale", 1.0)
+            }
+        except Exception as e:
+            print(f"Error loading universe config: {str(e)}")
         
         return world
     except HTTPException:

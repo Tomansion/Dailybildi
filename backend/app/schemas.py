@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 
 class UserRegisterRequest(BaseModel):
@@ -39,6 +39,16 @@ class BlockCatalogResponse(BaseModel):
     rarity: int
     universe_id: str
     image_path: str
+
+    class Config:
+        from_attributes = True
+
+
+class UniverseConfigResponse(BaseModel):
+    """Configuration for a universe"""
+    backgroundColor: str
+    blockSize: int
+    worldImageScale: float = 1.0
 
     class Config:
         from_attributes = True
@@ -108,6 +118,8 @@ class PlacedBlockResponse(BaseModel):
     layer: int = 0
     rarity: int = 0
     image_path: str = ''
+    width: int = 1
+    height: int = 1
     block_catalog: Optional[BlockCatalogResponse] = None
 
     class Config:
@@ -122,6 +134,7 @@ class WorldResponse(BaseModel):
     updated_at: datetime
     like_count: int
     placed_blocks: list[PlacedBlockResponse] = []
+    universeConfig: Optional[UniverseConfigResponse] = None
 
     class Config:
         from_attributes = True
@@ -147,6 +160,7 @@ class CommunityWorldResponse(BaseModel):
     liked: bool = False
     user: Optional[UserResponse] = None
     placed_blocks: list[PlacedBlockResponse] = []
+    universeConfig: Optional[UniverseConfigResponse] = None
 
     class Config:
         from_attributes = True
