@@ -327,6 +327,10 @@ onMounted(async () => {
       hasSelectedBlock.value = false;
     });
 
+    mainScene.setOnBlockPlacementCancelled(() => {
+      selectedBlockForPlacement.value = null;
+    });
+
     mainScene.setOnBlockUpdated(async (blockKey, updates) => {
       try {
         if (updates.removed) {

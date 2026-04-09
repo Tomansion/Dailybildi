@@ -32,6 +32,7 @@ export class MainScene extends Phaser.Scene {
     this.onBlockSelectedCallback = null
     this.onBlockDeselectedCallback = null
     this.onBlockUpdatedCallback = null
+    this.onBlockPlacementCancelledCallback = null
   }
 
   preload() {
@@ -392,6 +393,9 @@ export class MainScene extends Phaser.Scene {
       this.phantomBlock.destroy()
       this.phantomBlock = null
     }
+    if (this.onBlockPlacementCancelledCallback) {
+      this.onBlockPlacementCancelledCallback()
+    }
   }
 
   placeBlockAtPointer(pointer) {
@@ -596,5 +600,9 @@ export class MainScene extends Phaser.Scene {
 
   setOnBlockUpdated(callback) {
     this.onBlockUpdatedCallback = callback
+  }
+
+  setOnBlockPlacementCancelled(callback) {
+    this.onBlockPlacementCancelledCallback = callback
   }
 }
