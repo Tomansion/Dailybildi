@@ -18,19 +18,27 @@
           :key="universe.id"
           class="universe-card"
           @click="enterUniverse(universe.id)"
+          :style="{ 
+            backgroundColor: universe.config?.backgroundColor || 'var(--surface)',
+            color: universe.config?.textColor || 'var(--text-primary)'
+          }"
         >
           <WorldPreview
+            v-if="universe.world"
             :world="universe.world"
-            :universe-config="universe"
+            :universe-config="universe.config"
             :canvas-width="240"
             :canvas-height="170"
             class="world-preview"
           />
+          <div v-else class="world-preview-placeholder">
+            <div class="placeholder-text">No world yet</div>
+          </div>
           <h3>{{ universe.name }}</h3>
           <div class="universe-stats">
             <p>
-              <img src="/icons/square.svg" alt="available blocks" class="stat-icon" />
-              {{ universe.available_blocks }} blocks available
+              <img src="/icons/blocks.svg" alt="available blocks" class="stat-icon" />
+              {{ universe.available_blocks }} available block{{ universe.available_blocks === 1 ? '' : 's' }}
             </p>
             <p>
               <img src="/icons/bricks.svg" alt="placed blocks" class="stat-icon" />
@@ -49,6 +57,7 @@
           class="universe-card more-card"
           @click="router.push('/universe-contribution')"
         >
+          <img id="style-image" src="/styles.png">
           <h3>Want more universes?</h3>
           <p class="more-description">Contribute your own universe — your own theme, your own blocks.</p>
           <span class="more-link">Learn how →</span>
@@ -169,11 +178,40 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  overflow: hidden;
 }
 
 .universe-card:hover {
   border-color: var(--text-primary);
   transform: translateY(-2px);
+}
+
+.world-preview {
+  width: 100%;
+  border-radius: 0;
+}
+
+.world-preview-placeholder {
+  width: 100%;
+  height: 170px;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-text {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+#style-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  opacity: 0.4;
 }
 
 .universe-card h3 {
