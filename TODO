@@ -25,9 +25,9 @@
 ✔ Fix mobile world load not working in view mode @done(26-04-09 15:04)
 ✔ Fix nb available blocks not updating before entering the world @done(26-04-09 15:04)
 ✔ Add to portfolio @done(26-04-09 15:04)
+✔ Add universe card (color, bg) @done(26-04-10 14:42)
+✔ Generate & display a preview of the world. Or canvas rendering ? @done(26-04-10 14:42)
 
-☐ Add universe card (color, font, icon, bg)
-☐ Generate & display a preview of the world. Or canvas rendering ?
-☐ Ctrl Z
 ☐ Implement square selection and movement of blocks
+☐ Ctrl Z
 ☐ Make custom identicon
