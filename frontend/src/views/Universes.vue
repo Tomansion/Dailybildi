@@ -57,7 +57,7 @@
           class="universe-card more-card"
           @click="router.push('/universe-contribution')"
         >
-          <img id="style-image" src="/styles.png">
+          <img id="style-image" src="/images/styles.png">
           <h3>Want more universes?</h3>
           <p class="more-description">Contribute your own universe — your own theme, your own blocks.</p>
           <span class="more-link">Learn how →</span>

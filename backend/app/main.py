@@ -64,6 +64,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add security and SEO headers middleware
+@app.middleware("http")
+async def add_headers(request, call_next):
+    response = await call_next(request)
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # SEO headers
+    response.headers["Cache-Control"] = "public, max-age=3600" if not request.url.path.startswith("/api") else "no-cache"
+    # Performance
+    response.headers["Server"] = "Dailybildi"
+    return response
+
 # Include routers
 app.include_router(auth.router)
 app.include_router(blocks.router)
@@ -97,7 +112,12 @@ if frontend_public_path.exists():
     icons_path = frontend_public_path / "icons"
     if icons_path.exists():
         app.mount("/icons", StaticFiles(directory=str(icons_path)), name="icons")
-    
+
+    # Mount images at the root
+    images_path = frontend_public_path / "images"
+    if images_path.exists():
+        app.mount("/images", StaticFiles(directory=str(images_path)), name="images")
+
     # Serve individual root-level assets (logo.png, etc.)
     logo_path = frontend_public_path / "logo.png"
     if logo_path.exists():
@@ -138,6 +158,42 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/robots.txt")
+async def robots():
+    """Serve robots.txt for SEO"""
+    robots_path = Path(__file__).parent.parent.parent / "public" / "robots.txt"
+    if robots_path.exists():
+        return FileResponse(robots_path, media_type="text/plain")
+    return {"error": "robots.txt not found"}
+
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    """Serve sitemap.xml for SEO"""
+    sitemap_path = Path(__file__).parent.parent.parent / "public" / "sitemap.xml"
+    if sitemap_path.exists():
+        return FileResponse(sitemap_path, media_type="application/xml")
+    return {"error": "sitemap.xml not found"}
+
+
+@app.get("/humans.txt")
+async def humans():
+    """Serve humans.txt - credits and team info"""
+    humans_path = Path(__file__).parent.parent.parent / "public" / "humans.txt"
+    if humans_path.exists():
+        return FileResponse(humans_path, media_type="text/plain")
+    return {"error": "humans.txt not found"}
+
+
+@app.get("/.well-known/security.txt")
+async def security():
+    """Serve security.txt for security contact info"""
+    security_path = Path(__file__).parent.parent.parent / "public" / ".well-known" / "security.txt"
+    if security_path.exists():
+        return FileResponse(security_path, media_type="text/plain")
+    return {"error": "security.txt not found"}
+
+
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
     """Serve SPA frontend for all unmatched routes except /api and static files"""
@@ -147,7 +203,7 @@ async def serve_frontend(full_path: str):
     
     # Don't serve frontend for known static paths
     # Use trailing slashes to avoid matching /universes when checking for /univers/
-    static_paths = ["icons/", "fonts/", "logo.png", "assets/", "univers/", "tiles/", "favicon.ico"]
+    static_paths = ["icons/", "fonts/", "logo.png", "assets/", "univers/", "tiles/", "favicon.ico", "robots.txt", "sitemap.xml", "humans.txt", ".well-known/"]
     if any(full_path.startswith(path) for path in static_paths):
         raise HTTPException(status_code=404, detail=f"File not found: /{full_path}")
     

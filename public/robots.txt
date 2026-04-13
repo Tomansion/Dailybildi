@@ -1,0 +1,46 @@
+# DailyBildi - robots.txt for SEO
+# Last updated: 2026-04-13
+
+# Allow all search engines
+User-agent: *
+Allow: /
+Allow: /api/universes
+Allow: /univers/
+Allow: /api/community
+Allow: /fonts/
+Allow: /icons/
+Allow: /assets/
+
+# Disallow private and admin routes
+Disallow: /api/admin/
+
+# Wait time between requests (in seconds)
+Crawl-delay: 1
+
+# Request rate per minute (Google, Bing, etc. ignore this but others respect it)
+Request-rate: 30/1m
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Disallow: /api/admin/
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/admin/
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Disallow: /api/admin/
+Crawl-delay: 1
+
+# Disallow bad bots
+User-agent: MJ12bot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://dailybildi.tomansion.fr/sitemap.xml
+Sitemap: https://dailybildi.tomansion.fr/sitemap-universes.xml
+
