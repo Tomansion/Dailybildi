@@ -36,6 +36,7 @@ import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { useInventoryStore } from "../stores/inventory";
 import { getTileImageUrl } from "../services/urls";
+import { analytics } from "../services/analytics";
 import { PhaserGameWrapper } from "../phaser/PhaserGame";
 import Inventory from "../components/Inventory.vue";
 import BlockActionButtons from "../components/BlockActionButtons.vue";
@@ -50,6 +51,7 @@ const selectedBlockForPlacement = ref(null);
 
 let phaserGame = null;
 let mainScene = null;
+let lastInventoryBlockTypesCount = 0;
 
 const isInPlacementMode = computed(() => !!selectedBlockForPlacement.value);
 
@@ -232,6 +234,7 @@ onMounted(async () => {
   try {
     // Fetch user's inventory
     await inventoryStore.fetchInventory();
+    lastInventoryBlockTypesCount = inventoryBlocks.value.length;
 
     // Fetch placed blocks
     const placedBlocks = await inventoryStore.fetchWorldBlocks();
@@ -287,9 +290,21 @@ onMounted(async () => {
             gridY,
             transformations,
           );
+          analytics.track("block-placed");
+
           // Reload inventory and blocks
           await inventoryStore.fetchInventory();
+          const currentInventoryBlockTypesCount = inventoryBlocks.value.length;
           const updated = await inventoryStore.fetchWorldBlocks();
+
+          if (
+            currentInventoryBlockTypesCount === 0 &&
+            lastInventoryBlockTypesCount > 0
+          ) {
+            analytics.track("all-blocks-placed");
+          }
+
+          lastInventoryBlockTypesCount = currentInventoryBlockTypesCount;
 
           // Check if the block type is still in inventory
           const blockStillInInventory = inventoryBlocks.value.some(
@@ -365,6 +380,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   // Clean up keyboard listener
   window.removeEventListener("keydown", handleKeyDown);
+  lastInventoryBlockTypesCount = 0;
 
   if (phaserGame) {
     phaserGame.destroy();

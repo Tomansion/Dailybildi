@@ -61,6 +61,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import { analytics } from '../services/analytics'
 import BaseCard from '../components/base/BaseCard.vue'
 import BaseInput from '../components/base/BaseInput.vue'
 import BaseButton from '../components/base/BaseButton.vue'
@@ -94,6 +95,9 @@ const handleRegister = async () => {
     })
 
     authStore.setAuth(response.data.access_token, response.data.user)
+    analytics.track('account-created', {
+      method: 'password',
+    })
     router.push('/universes')
   } catch (err) {
     error.value = err.response?.data?.detail || 'Registration failed'
