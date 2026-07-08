@@ -431,6 +431,11 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border-radius: 10px;
   border: 1px solid var(--border);
+  touch-action: none;
+}
+
+.phaser-container :deep(canvas) {
+  touch-action: none;
 }
 
 .loading,

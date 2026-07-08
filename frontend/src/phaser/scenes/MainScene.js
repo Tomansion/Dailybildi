@@ -221,6 +221,10 @@ export class MainScene extends Phaser.Scene {
     // Handle left click on empty space - place new block if one is selected, or deselect current block
     // This is checked BEFORE gameobjectdown to prioritize block placement over block selection
     this.input.on('pointerdown', (pointer) => {
+      if (this.cameraManager?.isTouchGestureActive()) {
+        return
+      }
+
       if (pointer.button === 2) {
         // Right click
         return
@@ -247,6 +251,10 @@ export class MainScene extends Phaser.Scene {
 
     // Handle block click - only if not in placement mode
     this.input.on('gameobjectdown', (pointer, gameObject) => {
+      if (this.cameraManager?.isTouchGestureActive()) {
+        return
+      }
+
       if (gameObject instanceof Block && !this.selectedBlockData) {
         this.selectBlock(gameObject)
       }
@@ -254,6 +262,10 @@ export class MainScene extends Phaser.Scene {
 
     // Update phantom block position on mouse move and handle block hover effects
     this.input.on('pointermove', (pointer) => {
+      if (this.cameraManager?.isTouchGestureActive()) {
+        return
+      }
+
       if (this.phantomBlock) {
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
         const snapped = GridManager.snapToGrid(worldPoint.x, worldPoint.y)

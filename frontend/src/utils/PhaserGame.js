@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { CAMERA_ZOOM, changeCameraZoom, setCameraZoom } from '../phaser/utils/zoom'
 
 class MainScene extends Phaser.Scene {
   constructor() {
@@ -51,6 +52,7 @@ class MainScene extends Phaser.Scene {
   setupCamera() {
     this.camera = this.cameras.main
     this.camera.setBounds(-10000, -10000, 20000, 20000)
+    setCameraZoom(this.camera, CAMERA_ZOOM.initial)
   }
 
   setupInput() {
@@ -64,10 +66,21 @@ class MainScene extends Phaser.Scene {
 
     // Scroll wheel to zoom
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-      const factor = deltaY > 0 ? 0.95 : 1.05
-      const zoom = this.camera.zoom * factor
-      this.camera.setZoom(Math.max(0.5, Math.min(3, zoom)))
-    })
+      const zoomDelta = deltaY > 0 ? -CAMERA_ZOOM.wheelStep : CAMERA_ZOOM.wheelStep
+      this.setZoom(this.camera.zoom + zoomDelta, pointer)
+      })
+  }
+
+  setZoom(zoom, pointer = null) {
+    return setCameraZoom(this.camera, zoom, pointer)
+  }
+
+  zoomIn() {
+    return changeCameraZoom(this.camera, CAMERA_ZOOM.buttonStep)
+  }
+
+  zoomOut() {
+    return changeCameraZoom(this.camera, -CAMERA_ZOOM.buttonStep)
   }
 
   placeBlock(x, y, zOrder, blockData) {
