@@ -22,6 +22,7 @@
         @flip-horizontal="handleFlipHorizontal"
         @flip-vertical="handleFlipVertical"
         @discard="handleDiscard"
+        @export-png="handleExportPng"
         @zoom-in="handleZoomIn"
         @zoom-out="handleZoomOut"
         @toggle-selection-mode="handleToggleSelectionMode"
@@ -51,6 +52,7 @@ const error = ref(null);
 const hasSelectedBlock = ref(false);
 const selectedBlockForPlacement = ref(null);
 const isSelectionMode = ref(false);
+const isExporting = ref(false);
 
 let phaserGame = null;
 let mainScene = null;
@@ -203,6 +205,24 @@ const handleZoomIn = () => {
 
 const handleZoomOut = () => {
   if (mainScene) mainScene.zoomOut();
+};
+
+const handleExportPng = async () => {
+  if (!mainScene || isExporting.value) {
+    return;
+  }
+
+  try {
+    isExporting.value = true;
+    error.value = null;
+    await mainScene.exportWorldAsPng();
+    analytics.track("world-exported");
+  } catch (err) {
+    error.value = "Failed to export PNG: " + (err.message || "Unknown error");
+    console.error("Failed to export PNG:", err);
+  } finally {
+    isExporting.value = false;
+  }
 };
 
 const handleToggleSelectionMode = () => {

@@ -65,4 +65,12 @@ export class PhaserGameWrapper {
       this.mainScene = null;
     }
   }
+
+  exportWorldAsPng(options) {
+    if (!this.mainScene) {
+      return Promise.reject(new Error("Game scene is not initialized"));
+    }
+
+    return this.mainScene.exportWorldAsPng(options);
+  }
 }

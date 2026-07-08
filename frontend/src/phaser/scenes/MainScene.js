@@ -8,6 +8,7 @@ import {
   getBackendUrl,
 } from "@/lib/constants";
 import pinchPluginUrl from "@/utils/rexpinchplugin.min.js?url";
+import { WorldExporter } from "../utils/WorldExporter";
 
 export class MainScene extends Phaser.Scene {
   constructor() {
@@ -52,6 +53,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.setCORS("anonymous");
     this.load.plugin("rexpinchplugin", pinchPluginUrl, true);
   }
 
@@ -1068,5 +1070,9 @@ export class MainScene extends Phaser.Scene {
 
   setOnBlockPlacementCancelled(callback) {
     this.onBlockPlacementCancelledCallback = callback;
+  }
+
+  async exportWorldAsPng(options = {}) {
+    await WorldExporter.exportScene(this, options);
   }
 }
