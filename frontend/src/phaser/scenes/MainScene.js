@@ -43,6 +43,7 @@ export class MainScene extends Phaser.Scene {
     this.onBlockSelectedCallback = null
     this.onBlockDeselectedCallback = null
     this.onBlockUpdatedCallback = null
+    this.onBlocksUpdatedCallback = null
     this.onBlockPlacementCancelledCallback = null
   }
 
@@ -310,6 +311,7 @@ export class MainScene extends Phaser.Scene {
         const draggedBlocks = this.blockDragSnapshot
           ? Array.from(this.selectedBlocks)
           : [gameObject]
+        const movedBlocks = []
 
         for (const block of draggedBlocks) {
           const previousPosition = this.blockDragSnapshot?.positions.get(block.blockKey) ?? {
@@ -325,15 +327,25 @@ export class MainScene extends Phaser.Scene {
             previousPosition.gridX !== gridPos.gridX ||
             previousPosition.gridY !== gridPos.gridY
 
-          if (hasMoved && this.onBlockUpdatedCallback) {
-            this.onBlockUpdatedCallback(block.blockKey, {
-              gridX: gridPos.gridX,
-              gridY: gridPos.gridY,
-              rotation: block.blockRotation,
-              flipX: block.flipX,
-              flipY: block.flipY
-            })
+          if (!hasMoved) {
+            continue
           }
+
+          movedBlocks.push({
+            blockKey: block.blockKey,
+            gridX: gridPos.gridX,
+            gridY: gridPos.gridY,
+            rotation: block.blockRotation,
+            flipX: block.flipX,
+            flipY: block.flipY
+          })
+        }
+
+        if (movedBlocks.length > 1 && this.onBlocksUpdatedCallback) {
+          this.onBlocksUpdatedCallback(movedBlocks)
+        } else if (movedBlocks.length === 1 && this.onBlockUpdatedCallback) {
+          const movedBlock = movedBlocks[0]
+          this.onBlockUpdatedCallback(movedBlock.blockKey, movedBlock)
         }
 
         this.blockDragSnapshot = null
@@ -665,15 +677,35 @@ export class MainScene extends Phaser.Scene {
   rotateSelectedBlock() {
     if (this.selectedBlocks.size === 0) return
 
+    const updates = []
+
     for (const block of this.selectedBlocks) {
       const newRotation = (block.blockRotation + 90) % 360
       block.updateRotation(newRotation)
+
+      updates.push({
+        blockKey: block.blockKey,
+        rotation: newRotation,
+        gridX: block.gridX,
+        gridY: block.gridY,
+        flipX: block.flipX,
+        flipY: block.flipY,
+        zOrder: block.zOrder
+      })
+
+      if (this.selectedBlocks.size > 1) {
+        continue
+      }
 
       if (this.onBlockUpdatedCallback) {
         this.onBlockUpdatedCallback(block.blockKey, {
           rotation: newRotation
         })
       }
+    }
+
+    if (updates.length > 1 && this.onBlocksUpdatedCallback) {
+      this.onBlocksUpdatedCallback(updates)
     }
   }
 
@@ -687,15 +719,35 @@ export class MainScene extends Phaser.Scene {
   flipSelectedBlockHorizontal() {
     if (this.selectedBlocks.size === 0) return
 
+    const updates = []
+
     for (const block of this.selectedBlocks) {
       const flipX = !block.flipX
       block.updateFlip(flipX, block.flipY)
+
+      updates.push({
+        blockKey: block.blockKey,
+        gridX: block.gridX,
+        gridY: block.gridY,
+        rotation: block.blockRotation,
+        flipX: flipX,
+        flipY: block.flipY,
+        zOrder: block.zOrder
+      })
+
+      if (this.selectedBlocks.size > 1) {
+        continue
+      }
 
       if (this.onBlockUpdatedCallback) {
         this.onBlockUpdatedCallback(block.blockKey, {
           flipX: flipX
         })
       }
+    }
+
+    if (updates.length > 1 && this.onBlocksUpdatedCallback) {
+      this.onBlocksUpdatedCallback(updates)
     }
   }
 
@@ -709,15 +761,35 @@ export class MainScene extends Phaser.Scene {
   flipSelectedBlockVertical() {
     if (this.selectedBlocks.size === 0) return
 
+    const updates = []
+
     for (const block of this.selectedBlocks) {
       const flipY = !block.flipY
       block.updateFlip(block.flipX, flipY)
+
+      updates.push({
+        blockKey: block.blockKey,
+        gridX: block.gridX,
+        gridY: block.gridY,
+        rotation: block.blockRotation,
+        flipX: block.flipX,
+        flipY: flipY,
+        zOrder: block.zOrder
+      })
+
+      if (this.selectedBlocks.size > 1) {
+        continue
+      }
 
       if (this.onBlockUpdatedCallback) {
         this.onBlockUpdatedCallback(block.blockKey, {
           flipY: flipY
         })
       }
+    }
+
+    if (updates.length > 1 && this.onBlocksUpdatedCallback) {
+      this.onBlocksUpdatedCallback(updates)
     }
   }
 
@@ -944,6 +1016,10 @@ export class MainScene extends Phaser.Scene {
 
   setOnBlockUpdated(callback) {
     this.onBlockUpdatedCallback = callback
+  }
+
+  setOnBlocksUpdated(callback) {
+    this.onBlocksUpdatedCallback = callback
   }
 
   setOnBlockPlacementCancelled(callback) {

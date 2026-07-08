@@ -103,6 +103,20 @@ class PlacedBlockUpdateRequest(BaseModel):
     z_order: Optional[int] = None
 
 
+class BatchPlacedBlockUpdateItem(BaseModel):
+    block_id: str
+    grid_x: Optional[int] = None
+    grid_y: Optional[int] = None
+    rotation: Optional[int] = None
+    flip_x: Optional[bool] = None
+    flip_y: Optional[bool] = None
+    z_order: Optional[int] = None
+
+
+class BatchPlacedBlockUpdateRequest(BaseModel):
+    updates: list[BatchPlacedBlockUpdateItem]
+
+
 class PlacedBlockResponse(BaseModel):
     id: str
     world_id: str

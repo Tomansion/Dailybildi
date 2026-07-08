@@ -7,11 +7,18 @@ settings = get_settings()
 
 # Create engine with proper SQLite configuration
 if settings.DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        settings.DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    sqlite_engine_kwargs = {
+        "connect_args": {"check_same_thread": False},
+    }
+
+    # Only use a single shared connection for in-memory SQLite.
+    # File-backed SQLite databases need separate pooled connections,
+    # otherwise concurrent requests can corrupt transaction state.
+    if settings.DATABASE_URL.endswith(":memory:"):
+        sqlite_engine_kwargs["poolclass"] = StaticPool
+
+    engine = create_engine(settings.DATABASE_URL, **sqlite_engine_kwargs)
+
     # Enable foreign key constraint checking for SQLite
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_conn, connection_record):

@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
-from app.models import World, PlacedBlock, BlockCatalog, User
+from sqlalchemy import desc
+from app.models import World, PlacedBlock
 from app.services.inventory_service import InventoryService
 from app.config import get_settings
 
@@ -10,6 +11,24 @@ settings = get_settings()
 
 class WorldService:
     """Service for managing worlds and placed blocks"""
+
+    @staticmethod
+    def _get_user_owned_placed_block(
+        db: Session,
+        block_id: str,
+        user_id: Optional[str] = None,
+    ) -> PlacedBlock:
+        """Get a placed block, optionally scoped to one user."""
+        query = db.query(PlacedBlock)
+
+        if user_id:
+            query = query.join(World, PlacedBlock.world_id == World.id).filter(World.user_id == user_id)
+
+        placed_block = query.filter(PlacedBlock.id == block_id).first()
+        if not placed_block:
+            raise ValueError("Block not found")
+
+        return placed_block
 
     @staticmethod
     def create_world(db: Session, user_id: str, universe_id: str = None) -> World:
@@ -104,17 +123,16 @@ class WorldService:
     def update_placed_block(
         db: Session,
         block_id: str,
-        grid_x: int = None,
-        grid_y: int = None,
-        rotation: int = None,
-        flip_x: bool = None,
-        flip_y: bool = None,
-        z_order: int = None
+        grid_x: Optional[int] = None,
+        grid_y: Optional[int] = None,
+        rotation: Optional[int] = None,
+        flip_x: Optional[bool] = None,
+        flip_y: Optional[bool] = None,
+        z_order: Optional[int] = None,
+        user_id: Optional[str] = None
     ) -> PlacedBlock:
         """Update a placed block's position and properties"""
-        placed_block = db.query(PlacedBlock).filter(PlacedBlock.id == block_id).first()
-        if not placed_block:
-            raise ValueError("Block not found")
+        placed_block = WorldService._get_user_owned_placed_block(db, block_id, user_id)
 
         if grid_x is not None:
             placed_block.grid_x = grid_x
@@ -137,6 +155,46 @@ class WorldService:
         db.commit()
         db.refresh(placed_block)
         return placed_block
+
+    @staticmethod
+    def update_placed_blocks(db: Session, updates: list, user_id: str = None) -> list[PlacedBlock]:
+        """Update multiple placed blocks in a single transaction."""
+        if not updates:
+            return []
+
+        updated_blocks = []
+        touched_world_ids = set()
+
+        for update in updates:
+            placed_block = WorldService._get_user_owned_placed_block(db, update.block_id, user_id)
+
+            if update.grid_x is not None:
+                placed_block.grid_x = update.grid_x
+            if update.grid_y is not None:
+                placed_block.grid_y = update.grid_y
+            if update.rotation is not None:
+                placed_block.rotation = update.rotation
+            if update.flip_x is not None:
+                placed_block.flip_x = update.flip_x
+            if update.flip_y is not None:
+                placed_block.flip_y = update.flip_y
+            if update.z_order is not None:
+                placed_block.z_order = update.z_order
+
+            touched_world_ids.add(placed_block.world_id)
+            updated_blocks.append(placed_block)
+
+        for world_id in touched_world_ids:
+            world = WorldService.get_world_by_id(db, world_id)
+            if world:
+                world.updated_at = datetime.utcnow()
+
+        db.commit()
+
+        for placed_block in updated_blocks:
+            db.refresh(placed_block)
+
+        return updated_blocks
 
     @staticmethod
     def remove_placed_block(db: Session, block_id: str) -> bool:

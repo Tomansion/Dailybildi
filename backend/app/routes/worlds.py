@@ -1,7 +1,16 @@
+from typing import cast
+
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.schemas import WorldResponse, CommunityWorldResponse, PlacedBlockRequest, PlacedBlockUpdateRequest, PlacedBlockResponse
+from app.schemas import (
+    WorldResponse,
+    CommunityWorldResponse,
+    PlacedBlockRequest,
+    PlacedBlockUpdateRequest,
+    BatchPlacedBlockUpdateRequest,
+    PlacedBlockResponse,
+)
 from app.services.world_service import WorldService
 from app.services.inventory_service import InventoryService
 from app.services.block_loader import BlockLoader
@@ -24,7 +33,12 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
     payload = verify_token(token)
     if not payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    return payload.get("sub")
+
+    user_id = payload.get("sub")
+    if not isinstance(user_id, str):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    return cast(str, user_id)
 
 
 def _enrich_placed_blocks_with_metadata(world):
@@ -59,6 +73,38 @@ def _enrich_placed_blocks_with_metadata(world):
         print(f"Error enriching placed blocks: {str(e)}")
     
     return world
+
+
+def _build_block_metadata_map():
+    """Build metadata map for all block catalogs."""
+    block_metadata_map = {}
+    universes = UniverseService.list_universes()
+
+    for universe in universes:
+        blocks = BlockLoader.load_blocks(universe['id'])
+        for block in blocks:
+            block_metadata_map[block.id] = {
+                'block_id': block.block_id,
+                'layer': block.layer,
+                'rarity': block.rarity,
+                'image_path': block.image_path,
+                'width': block.width,
+                'height': block.height
+            }
+
+    return block_metadata_map
+
+
+def _enrich_placed_block_with_metadata(placed_block, block_metadata_map):
+    """Enrich one placed block with filesystem metadata."""
+    metadata = block_metadata_map.get(placed_block.block_catalog_id, {})
+    placed_block.block_id = metadata.get('block_id', '')
+    placed_block.layer = metadata.get('layer', 0)
+    placed_block.rarity = metadata.get('rarity', 0)
+    placed_block.image_path = metadata.get('image_path', '')
+    placed_block.width = metadata.get('width', 1)
+    placed_block.height = metadata.get('height', 1)
+    return placed_block
 
 
 @router.get("", response_model=WorldResponse)
@@ -125,7 +171,7 @@ def place_block(
         # Place the block
         placed_block = WorldService.place_block(
             db,
-            world.id,
+            str(world.id),
             request.block_catalog_id,
             request.grid_x,
             request.grid_y,
@@ -138,23 +184,8 @@ def place_block(
         
         # Enrich with block metadata
         try:
-            block_metadata_map = {}
-            universes = UniverseService.list_universes()
-            for universe in universes:
-                blocks = BlockLoader.load_blocks(universe['id'])
-                for block in blocks:
-                    block_metadata_map[block.id] = {
-                        'block_id': block.block_id,
-                        'layer': block.layer,
-                        'rarity': block.rarity,
-                        'image_path': block.image_path
-                    }
-            
-            metadata = block_metadata_map.get(placed_block.block_catalog_id, {})
-            placed_block.block_id = metadata.get('block_id', '')
-            placed_block.layer = metadata.get('layer', 0)
-            placed_block.rarity = metadata.get('rarity', 0)
-            placed_block.image_path = metadata.get('image_path', '')
+            block_metadata_map = _build_block_metadata_map()
+            placed_block = _enrich_placed_block_with_metadata(placed_block, block_metadata_map)
         except Exception as e:
             print(f"Error enriching placed block: {str(e)}")
 
@@ -197,6 +228,36 @@ def get_world(world_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@router.patch("/blocks/batch", response_model=list[PlacedBlockResponse])
+def update_placed_blocks_batch(
+    request: BatchPlacedBlockUpdateRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Update multiple placed blocks in one request."""
+    try:
+        placed_blocks = WorldService.update_placed_blocks(
+            db,
+            request.updates,
+            user_id=user_id
+        )
+
+        try:
+            block_metadata_map = _build_block_metadata_map()
+            placed_blocks = [
+                _enrich_placed_block_with_metadata(placed_block, block_metadata_map)
+                for placed_block in placed_blocks
+            ]
+        except Exception as e:
+            print(f"Error enriching batch placed blocks: {str(e)}")
+
+        return placed_blocks
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @router.patch("/blocks/{block_id}", response_model=PlacedBlockResponse)
 def update_placed_block(
     block_id: str,
@@ -214,31 +275,20 @@ def update_placed_block(
             request.rotation,
             request.flip_x,
             request.flip_y,
-            request.z_order
+            request.z_order,
+            user_id=user_id
         )
-        
+
         # Enrich with block metadata
         try:
-            block_metadata_map = {}
-            universes = UniverseService.list_universes()
-            for universe in universes:
-                blocks = BlockLoader.load_blocks(universe['id'])
-                for block in blocks:
-                    block_metadata_map[block.id] = {
-                        'block_id': block.block_id,
-                        'layer': block.layer,
-                        'rarity': block.rarity,
-                        'image_path': block.image_path
-                    }
-            
-            metadata = block_metadata_map.get(placed_block.block_catalog_id, {})
-            placed_block.block_id = metadata.get('block_id', '')
-            placed_block.layer = metadata.get('layer', 0)
-            placed_block.rarity = metadata.get('rarity', 0)
-            placed_block.image_path = metadata.get('image_path', '')
+            block_metadata_map = _build_block_metadata_map()
+            placed_block = _enrich_placed_block_with_metadata(
+                placed_block,
+                block_metadata_map,
+            )
         except Exception as e:
             print(f"Error enriching placed block: {str(e)}")
-        
+
         return placed_block
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

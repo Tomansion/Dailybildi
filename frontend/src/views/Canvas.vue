@@ -380,6 +380,14 @@ onMounted(async () => {
       }
     });
 
+    mainScene.setOnBlocksUpdated(async (updates) => {
+      try {
+        await inventoryStore.updateBlocksBatch(updates);
+      } catch (err) {
+        console.error("Failed to batch update blocks:", err);
+      }
+    });
+
     // Load images first, then blocks
     if (allBlockImages.length > 0) {
       mainScene.loadBlockImages(allBlockImages, () => {
