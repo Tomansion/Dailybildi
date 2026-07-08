@@ -5,7 +5,7 @@
     :class="[
       'base-button',
       `base-button--${variant}`,
-      { 'base-button--disabled': disabled }
+      { 'base-button--disabled': disabled },
     ]"
     @click="$emit('click')"
   >
@@ -17,21 +17,22 @@
 defineProps({
   type: {
     type: String,
-    default: 'button',
-    validator: (value) => ['button', 'submit', 'reset'].includes(value)
+    default: "button",
+    validator: (value) => ["button", "submit", "reset"].includes(value),
   },
   variant: {
     type: String,
-    default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'danger', 'success'].includes(value)
+    default: "primary",
+    validator: (value) =>
+      ["primary", "secondary", "danger", "success"].includes(value),
   },
   disabled: {
     type: Boolean,
-    default: false
-  }
-})
+    default: false,
+  },
+});
 
-defineEmits(['click'])
+defineEmits(["click"]);
 </script>
 
 <style scoped>

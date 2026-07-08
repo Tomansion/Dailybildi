@@ -1,10 +1,11 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 @font-face {
-  font-family: 'Tektur';
-  src: url('/fonts/Tektur-VariableFont_wdth,wght.ttf') format('truetype-variations');
+  font-family: "Tektur";
+  src: url("/fonts/Tektur-VariableFont_wdth,wght.ttf")
+    format("truetype-variations");
   font-weight: 100 900;
   font-display: swap;
 }
@@ -27,7 +28,13 @@
 }
 
 body {
-  font-family: 'Tektur', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Tektur",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   background-color: var(--background);
   color: var(--text-primary);
   line-height: 1.5;
@@ -42,7 +49,12 @@ body {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 600;
   letter-spacing: -1px;
   color: var(--text-primary);
@@ -216,7 +228,7 @@ select:focus {
 }
 
 .loading::after {
-  content: '';
+  content: "";
   display: inline-block;
   width: 1rem;
   height: 1rem;

@@ -27,56 +27,58 @@
           :disabled="loading"
           class="submit-button"
         >
-          {{ loading ? 'Logging in...' : 'Login' }}
+          {{ loading ? "Logging in..." : "Login" }}
         </BaseButton>
       </form>
 
       <p class="auth-footer">
         Don't have an account?
-        <router-link to="/register" class="auth-link">Register here</router-link>
+        <router-link to="/register" class="auth-link"
+          >Register here</router-link
+        >
       </p>
     </BaseCard>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import api from '../services/api'
-import BaseCard from '../components/base/BaseCard.vue'
-import BaseInput from '../components/base/BaseInput.vue'
-import BaseButton from '../components/base/BaseButton.vue'
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
+import api from "../services/api";
+import BaseCard from "../components/base/BaseCard.vue";
+import BaseInput from "../components/base/BaseInput.vue";
+import BaseButton from "../components/base/BaseButton.vue";
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const authStore = useAuthStore();
 
 const form = ref({
-  username: '',
-  password: ''
-})
+  username: "",
+  password: "",
+});
 
-const loading = ref(false)
-const error = ref(null)
+const loading = ref(false);
+const error = ref(null);
 
 const handleLogin = async () => {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
 
   try {
-    const response = await api.post('/auth/login', {
+    const response = await api.post("/auth/login", {
       username: form.value.username,
-      password: form.value.password
-    })
+      password: form.value.password,
+    });
 
-    authStore.setAuth(response.data.access_token, response.data.user)
-    router.push('/universes')
+    authStore.setAuth(response.data.access_token, response.data.user);
+    router.push("/universes");
   } catch (err) {
-    error.value = err.response?.data?.detail || 'Login failed'
+    error.value = err.response?.data?.detail || "Login failed";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

@@ -1,27 +1,27 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
 
-export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('token') || null)
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+export const useAuthStore = defineStore("auth", () => {
+  const token = ref(localStorage.getItem("token") || null);
+  const user = ref(JSON.parse(localStorage.getItem("user") || "null"));
 
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => !!token.value);
 
   const setAuth = (authToken, userData) => {
-    token.value = authToken
-    user.value = userData
-    localStorage.setItem('token', authToken)
-    localStorage.setItem('user', JSON.stringify(userData))
-  }
+    token.value = authToken;
+    user.value = userData;
+    localStorage.setItem("token", authToken);
+    localStorage.setItem("user", JSON.stringify(userData));
+  };
 
   const logout = () => {
-    token.value = null
-    user.value = null
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  }
+    token.value = null;
+    user.value = null;
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  };
 
-  const getToken = () => token.value
+  const getToken = () => token.value;
 
   return {
     token,
@@ -29,6 +29,6 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     setAuth,
     logout,
-    getToken
-  }
-})
+    getToken,
+  };
+});

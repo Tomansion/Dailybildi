@@ -2,19 +2,29 @@
   <div id="app">
     <nav class="navbar">
       <div class="nav-container">
-          <div class="nav-brand-section">
-            <router-link to="/" class="nav-brand">
-              <img src="/icons/logo.svg" alt="Dailybildi" class="nav-logo" />
-              Dailybildi
-            </router-link>
-            <a href="https://github.com/Tomansion/dailybildi" target="_blank" rel="noopener noreferrer" class="nav-version">v{{ version }}</a>
-          </div>
+        <div class="nav-brand-section">
+          <router-link to="/" class="nav-brand">
+            <img src="/icons/logo.svg" alt="Dailybildi" class="nav-logo" />
+            Dailybildi
+          </router-link>
+          <a
+            href="https://github.com/Tomansion/dailybildi"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="nav-version"
+            >v{{ version }}</a
+          >
+        </div>
         <ul class="nav-menu">
           <li v-if="isAuthenticated" class="nav-item">
-            <router-link to="/universes" class="nav-link">Universes</router-link>
+            <router-link to="/universes" class="nav-link"
+              >Universes</router-link
+            >
           </li>
           <li class="nav-item">
-            <router-link to="/community" class="nav-link">Community</router-link>
+            <router-link to="/community" class="nav-link"
+              >Community</router-link
+            >
           </li>
           <li v-if="isAuthenticated" class="nav-item">
             <div class="nav-user-profile">
@@ -41,22 +51,22 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useAuthStore } from './stores/auth'
-import { useRouter } from 'vue-router'
-import packageJson from '../package.json'
+import { computed } from "vue";
+import { useAuthStore } from "./stores/auth";
+import { useRouter } from "vue-router";
+import packageJson from "../package.json";
 
-const authStore = useAuthStore()
-const router = useRouter()
-const version = packageJson.version
+const authStore = useAuthStore();
+const router = useRouter();
+const version = packageJson.version;
 
-const isAuthenticated = computed(() => authStore.isAuthenticated)
-const userDisplayName = computed(() => authStore.user?.display_name || '')
+const isAuthenticated = computed(() => authStore.isAuthenticated);
+const userDisplayName = computed(() => authStore.user?.display_name || "");
 
 const logout = () => {
-  authStore.logout()
-  router.push('/login')
-}
+  authStore.logout();
+  router.push("/login");
+};
 </script>
 
 <style>
@@ -138,7 +148,7 @@ const logout = () => {
     gap: 0;
     font-size: 0;
   }
-  
+
   .nav-logo {
     height: 28px;
     width: 28px;

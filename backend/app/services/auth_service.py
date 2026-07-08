@@ -9,7 +9,9 @@ class AuthService:
     """Authentication service for user registration and login (auth only)"""
 
     @staticmethod
-    def register_user(db: Session, username: str, display_name: str, password: str) -> dict:
+    def register_user(
+        db: Session, username: str, display_name: str, password: str
+    ) -> dict:
         """Register a new user"""
         # Check if user already exists
         existing_user = db.query(User).filter(User.username == username).first()
@@ -22,7 +24,7 @@ class AuthService:
             username=username,
             display_name=display_name,
             password_hash=hashed_password,
-            received_initial_blocks=False
+            received_initial_blocks=False,
         )
         db.add(new_user)
         db.commit()
@@ -32,31 +34,34 @@ class AuthService:
         from app.services.inventory_service import InventoryService
         from app.services.block_service import BlockService
         from app.config import get_settings
-        
+
         settings = get_settings()
-        
+
         try:
             # Create inventory
             inventory = InventoryService.create_inventory(db, new_user.id)
-            
+
             # Distribute 30 blocks for the starting universe
             result = BlockService.distribute_blocks_to_user(
-                db,
-                inventory.id,
-                settings.UNIVERSE_ID
+                db, inventory.id, settings.UNIVERSE_ID
             )
-            
+
             # Mark that user has received initial blocks
             new_user.received_initial_blocks = True
             db.commit()
         except ValueError as e:
             # Log but don't fail registration if block distribution fails
             print(f"⚠️  Warning: {e}")
-            print(f"   Make sure public/univers/{settings.UNIVERSE_ID}/config.json exists with blocks")
+            print(
+                f"   Make sure public/univers/{settings.UNIVERSE_ID}/config.json exists with blocks"
+            )
         except Exception as e:
             # Log but don't fail registration if block distribution fails
-            print(f"ERROR during registration block distribution for user {new_user.id}: {e}")
+            print(
+                f"ERROR during registration block distribution for user {new_user.id}: {e}"
+            )
             import traceback
+
             traceback.print_exc()
 
         return {"user_id": new_user.id, "username": new_user.username}
@@ -88,8 +93,8 @@ class AuthService:
                 "display_name": user.display_name,
                 "created_at": user.created_at,
                 "first_login_at": user.first_login_at,
-                "received_initial_blocks": user.received_initial_blocks
-            }
+                "received_initial_blocks": user.received_initial_blocks,
+            },
         }
 
     @staticmethod

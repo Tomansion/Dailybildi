@@ -16,51 +16,46 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed } from "vue";
 
 const props = defineProps({
   modelValue: {
     type: [String, Number],
-    default: ''
+    default: "",
   },
   label: {
     type: String,
-    default: null
+    default: null,
   },
   type: {
     type: String,
-    default: 'text',
-    validator: (value) => [
-      'text',
-      'email',
-      'password',
-      'number',
-      'tel',
-      'url',
-      'search'
-    ].includes(value)
+    default: "text",
+    validator: (value) =>
+      ["text", "email", "password", "number", "tel", "url", "search"].includes(
+        value,
+      ),
   },
   placeholder: {
     type: String,
-    default: ''
+    default: "",
   },
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   required: {
     type: Boolean,
-    default: false
+    default: false,
   },
   error: {
     type: String,
-    default: null
-  }
-})
+    default: null,
+  },
+});
 
-const id = computed(() => `input-${Math.random().toString(36).slice(2)}`)
+const id = computed(() => `input-${Math.random().toString(36).slice(2)}`);
 
-defineEmits(['update:modelValue'])
+defineEmits(["update:modelValue"]);
 </script>
 
 <style scoped>

@@ -16,10 +16,11 @@ class LikeService:
             raise ValueError("World not found")
 
         # Check if already liked
-        existing_like = db.query(Like).filter(
-            Like.user_id == user_id,
-            Like.world_id == world_id
-        ).first()
+        existing_like = (
+            db.query(Like)
+            .filter(Like.user_id == user_id, Like.world_id == world_id)
+            .first()
+        )
 
         if existing_like:
             return existing_like
@@ -38,10 +39,11 @@ class LikeService:
     @staticmethod
     def unlike_world(db: Session, user_id: str, world_id: str) -> bool:
         """Unlike a world"""
-        like = db.query(Like).filter(
-            Like.user_id == user_id,
-            Like.world_id == world_id
-        ).first()
+        like = (
+            db.query(Like)
+            .filter(Like.user_id == user_id, Like.world_id == world_id)
+            .first()
+        )
 
         if not like:
             return False
@@ -57,10 +59,11 @@ class LikeService:
     @staticmethod
     def is_world_liked(db: Session, user_id: str, world_id: str) -> bool:
         """Check if user has liked a world"""
-        like = db.query(Like).filter(
-            Like.user_id == user_id,
-            Like.world_id == world_id
-        ).first()
+        like = (
+            db.query(Like)
+            .filter(Like.user_id == user_id, Like.world_id == world_id)
+            .first()
+        )
         return like is not None
 
     @staticmethod

@@ -46,6 +46,7 @@ class BlockCatalogResponse(BaseModel):
 
 class UniverseConfigResponse(BaseModel):
     """Configuration for a universe"""
+
     backgroundColor: str
     textColor: Optional[str] = None
     blockSize: int
@@ -129,10 +130,10 @@ class PlacedBlockResponse(BaseModel):
     z_order: int
     placed_at: datetime
     # Block metadata loaded from filesystem/config.json
-    block_id: str = ''
+    block_id: str = ""
     layer: int = 0
     rarity: int = 0
-    image_path: str = ''
+    image_path: str = ""
     width: int = 1
     height: int = 1
     block_catalog: Optional[BlockCatalogResponse] = None

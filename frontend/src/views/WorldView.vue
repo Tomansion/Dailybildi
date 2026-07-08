@@ -17,90 +17,92 @@
     <div v-else-if="!world" class="error">World not found</div>
 
     <div v-else class="world-detail">
-        <div id="phaser-container-view" class="phaser-container"></div>
+      <div id="phaser-container-view" class="phaser-container"></div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import { getTileImageUrl } from '../services/urls'
-import { PhaserGameWrapper } from '../phaser/PhaserGame'
-import LikeButton from '../components/LikeButton.vue'
-import api from '../services/api'
+import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useAuthStore } from "../stores/auth";
+import { getTileImageUrl } from "../services/urls";
+import { PhaserGameWrapper } from "../phaser/PhaserGame";
+import LikeButton from "../components/LikeButton.vue";
+import api from "../services/api";
 
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
+const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
 
-const world = ref(null)
-const loading = ref(false)
-const error = ref(null)
-const isLiked = ref(false)
+const world = ref(null);
+const loading = ref(false);
+const error = ref(null);
+const isLiked = ref(false);
 
-let phaserGame = null
-let mainScene = null
+let phaserGame = null;
+let mainScene = null;
 
 const goBack = () => {
-  router.back()
-}
+  router.back();
+};
 
 const fetchWorld = async () => {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
 
   try {
-    const response = await api.get(`/world/${route.params.worldId}`)
-    world.value = response.data
+    const response = await api.get(`/world/${route.params.worldId}`);
+    world.value = response.data;
 
     // Check if user has liked this world
     if (authStore.isAuthenticated) {
-      const likesResponse = await api.get('/likes')
-      isLiked.value = likesResponse.data.liked_world_ids.includes(route.params.worldId)
+      const likesResponse = await api.get("/likes");
+      isLiked.value = likesResponse.data.liked_world_ids.includes(
+        route.params.worldId,
+      );
     }
   } catch (err) {
-    error.value = 'Failed to load world'
-    console.error(err)
-    loading.value = false
-    return
+    error.value = "Failed to load world";
+    console.error(err);
+    loading.value = false;
+    return;
   }
 
-  loading.value = false
+  loading.value = false;
 
   // Wait for Vue to render the DOM element
-  await nextTick()
+  await nextTick();
 
   // Initialize Phaser game
-  phaserGame = new PhaserGameWrapper()
-  mainScene = await phaserGame.initialize('phaser-container-view')
+  phaserGame = new PhaserGameWrapper();
+  mainScene = await phaserGame.initialize("phaser-container-view");
 
   if (!mainScene) {
-    error.value = 'Failed to initialize game'
-    return
+    error.value = "Failed to initialize game";
+    return;
   }
 
-  mainScene.setReadOnly(true)
+  mainScene.setReadOnly(true);
 
   // Collect all block images to load from placed blocks
-  const blockImageMap = new Map()
+  const blockImageMap = new Map();
 
-  world.value.placed_blocks.forEach(block => {
+  world.value.placed_blocks.forEach((block) => {
     if (!blockImageMap.has(block.block_catalog_id)) {
       blockImageMap.set(block.block_catalog_id, {
         id: block.block_catalog_id,
         layer: block.layer,
         rarity: block.rarity,
-        imagePath: getTileImageUrl(block.image_path)
-      })
+        imagePath: getTileImageUrl(block.image_path),
+      });
     }
-  })
+  });
 
-  const allBlockImages = Array.from(blockImageMap.values())
+  const allBlockImages = Array.from(blockImageMap.values());
 
   // Transform placed blocks to Phaser format
-  const placedBlocks = world.value.placed_blocks.map(block => ({
+  const placedBlocks = world.value.placed_blocks.map((block) => ({
     _key: block.id,
     blockKey: block.id,
     blockCatalogKey: block.block_id,
@@ -114,31 +116,31 @@ const fetchWorld = async () => {
       id: block.block_catalog_id,
       layer: block.layer,
       rarity: block.rarity,
-      imagePath: getTileImageUrl(block.image_path)
-    }
-  }))
+      imagePath: getTileImageUrl(block.image_path),
+    },
+  }));
 
   // Load images first, then blocks
   if (allBlockImages.length > 0) {
     mainScene.loadBlockImages(allBlockImages, () => {
-      mainScene.loadBlocks(placedBlocks)
-    })
+      mainScene.loadBlocks(placedBlocks);
+    });
   } else {
-    mainScene.loadBlocks(placedBlocks)
+    mainScene.loadBlocks(placedBlocks);
   }
-}
+};
 
 onMounted(() => {
-  fetchWorld()
-})
+  fetchWorld();
+});
 
 onBeforeUnmount(() => {
   if (phaserGame) {
-    phaserGame.destroy()
-    phaserGame = null
-    mainScene = null
+    phaserGame.destroy();
+    phaserGame = null;
+    mainScene = null;
   }
-})
+});
 </script>
 
 <style scoped>

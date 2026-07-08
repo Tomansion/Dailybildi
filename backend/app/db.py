@@ -25,6 +25,7 @@ if settings.DATABASE_URL.startswith("sqlite"):
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
+
 else:
     engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 

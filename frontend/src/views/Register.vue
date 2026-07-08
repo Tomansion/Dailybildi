@@ -44,7 +44,7 @@
           :disabled="loading || passwordMismatch"
           class="submit-button"
         >
-          {{ loading ? 'Registering...' : 'Register' }}
+          {{ loading ? "Registering..." : "Register" }}
         </BaseButton>
       </form>
 
@@ -57,54 +57,57 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import api from '../services/api'
-import { analytics } from '../services/analytics'
-import BaseCard from '../components/base/BaseCard.vue'
-import BaseInput from '../components/base/BaseInput.vue'
-import BaseButton from '../components/base/BaseButton.vue'
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
+import api from "../services/api";
+import { analytics } from "../services/analytics";
+import BaseCard from "../components/base/BaseCard.vue";
+import BaseInput from "../components/base/BaseInput.vue";
+import BaseButton from "../components/base/BaseButton.vue";
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const authStore = useAuthStore();
 
 const form = ref({
-  username: '',
-  displayName: '',
-  password: '',
-  confirmPassword: ''
-})
+  username: "",
+  displayName: "",
+  password: "",
+  confirmPassword: "",
+});
 
-const loading = ref(false)
-const error = ref(null)
+const loading = ref(false);
+const error = ref(null);
 
-const passwordMismatch = computed(() => 
-  form.value.password && form.value.confirmPassword && form.value.password !== form.value.confirmPassword
-)
+const passwordMismatch = computed(
+  () =>
+    form.value.password &&
+    form.value.confirmPassword &&
+    form.value.password !== form.value.confirmPassword,
+);
 
 const handleRegister = async () => {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
 
   try {
-    const response = await api.post('/auth/register', {
+    const response = await api.post("/auth/register", {
       display_name: form.value.displayName,
       username: form.value.username,
-      password: form.value.password
-    })
+      password: form.value.password,
+    });
 
-    authStore.setAuth(response.data.access_token, response.data.user)
-    analytics.track('account-created', {
-      method: 'password',
-    })
-    router.push('/universes')
+    authStore.setAuth(response.data.access_token, response.data.user);
+    analytics.track("account-created", {
+      method: "password",
+    });
+    router.push("/universes");
   } catch (err) {
-    error.value = err.response?.data?.detail || 'Registration failed'
+    error.value = err.response?.data?.detail || "Registration failed";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

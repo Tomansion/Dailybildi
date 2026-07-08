@@ -5,64 +5,88 @@
       <div class="landing-content">
         <h1>DailyBildi</h1>
         <p class="subtitle">Build block by block as days go by</p>
-        
+
         <div class="concept">
           <div class="concept-item">
             <div class="concept-header">
               <img src="/icons/blocks.svg" alt="Blocks" class="concept-icon" />
               <h3>New Blocks Every Day</h3>
             </div>
-            <p>Receive 10 unique blocks at 00:00. Everyone gets the same blocks on the same day, but you create your own unique masterpiece.</p>
+            <p>
+              Receive 10 unique blocks at 00:00. Everyone gets the same blocks
+              on the same day, but you create your own unique masterpiece.
+            </p>
           </div>
-          
+
           <div class="concept-item">
             <div class="concept-header">
               <img src="/icons/bricks.svg" alt="Bricks" class="concept-icon" />
               <h3>Place & Build</h3>
             </div>
-            <p>Place blocks on an infinite canvas following a grid. Rotate and flip your blocks, your creation grows day by day.</p>
+            <p>
+              Place blocks on an infinite canvas following a grid. Rotate and
+              flip your blocks, your creation grows day by day.
+            </p>
           </div>
-          
+
           <div class="concept-item">
             <div class="concept-header">
-              <img src="/icons/heart.svg" alt="Community" class="concept-icon" />
+              <img
+                src="/icons/heart.svg"
+                alt="Community"
+                class="concept-icon"
+              />
               <h3>Community</h3>
             </div>
-            <p>View other creators' worlds, like their creations, and see what others are building.</p>
+            <p>
+              View other creators' worlds, like their creations, and see what
+              others are building.
+            </p>
           </div>
-          
+
           <div class="concept-item">
             <div class="concept-header">
               <img src="/icons/logo.svg" alt="Universes" class="concept-icon" />
               <h3>Multiple Universes</h3>
             </div>
-            <p>Build in different universes with unique aesthetics – from medieval castles to sci-fi landscapes, each with its own block catalog.</p>
+            <p>
+              Build in different universes with unique aesthetics – from
+              medieval castles to sci-fi landscapes, each with its own block
+              catalog.
+            </p>
           </div>
 
           <div class="concept-item">
             <div class="concept-header">
-              <img src="/icons/bird.svg" alt="Open Source" class="concept-icon" />
+              <img
+                src="/icons/bird.svg"
+                alt="Open Source"
+                class="concept-icon"
+              />
               <h3>Free and Open Source</h3>
             </div>
-            <p>Built with open source technologies. Everyone can contribute and help shape the future of DailyBildi.</p>
+            <p>
+              Built with open source technologies. Everyone can contribute and
+              help shape the future of DailyBildi.
+            </p>
           </div>
         </div>
       </div>
     </div>
-    
+
     <!-- Right Side - Action Buttons -->
     <div class="landing-right">
       <div class="blocks-animation">
-        <div 
-          v-for="block in blocks" 
+        <div
+          v-for="block in blocks"
           :key="block.id"
           class="block"
           :class="[`block-${block.shape}`, { 'block-visible': block.visible }]"
-          :style="{ 
+          :style="{
             left: `${block.x}px`,
             top: `${block.y}px`,
             animationDelay: `${block.delay}ms`,
-            '--block-size': `${blockSize}px`
+            '--block-size': `${blockSize}px`,
           }"
         />
       </div>
@@ -71,7 +95,7 @@
           <div class="card-content">
             <h2>Get Started</h2>
             <p>Join the daily building community</p>
-            
+
             <div class="button-group">
               <router-link to="/login" class="action-button login-button">
                 Login
@@ -79,9 +103,7 @@
               <router-link to="/register" class="action-button register-button">
                 Create Account
               </router-link>
-              <router-link to="/community">
-                Explore Community
-              </router-link>
+              <router-link to="/community"> Explore Community </router-link>
             </div>
           </div>
         </div>
@@ -91,144 +113,154 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 
-const blocks = ref([])
-let blockSize = 42
-const gridSizeRows = 20
+const blocks = ref([]);
+let blockSize = 42;
+const gridSizeRows = 20;
 
 const handleResize = async () => {
-  await nextTick()
-  createBlocks()
-}
+  await nextTick();
+  createBlocks();
+};
 
-const shapes = ['square', 'circle', 'triangle', 'right-triangle-right', 'right-triangle-down', 'right-triangle-left', 'right-triangle-up']
+const shapes = [
+  "square",
+  "circle",
+  "triangle",
+  "right-triangle-right",
+  "right-triangle-down",
+  "right-triangle-left",
+  "right-triangle-up",
+];
 
 const createBlocks = () => {
-  const container = document.querySelector('.blocks-animation')
-  if (!container) return
-  
-  const containerWidth = container.parentElement.offsetWidth
-  const containerHeight = container.parentElement.offsetHeight
-  
+  const container = document.querySelector(".blocks-animation");
+  if (!container) return;
+
+  const containerWidth = container.parentElement.offsetWidth;
+  const containerHeight = container.parentElement.offsetHeight;
+
   // Calculate grid columns dynamically based on aspect ratio
-  const gridSizeCols = Math.ceil((containerWidth / containerHeight) * gridSizeRows)
-  
+  const gridSizeCols = Math.ceil(
+    (containerWidth / containerHeight) * gridSizeRows,
+  );
+
   // Calculate block size to fill the container while maintaining fixed grid
-  const blockSizeWidth = containerWidth / gridSizeCols
-  const blockSizeHeight = containerHeight / gridSizeRows
-  blockSize = Math.min(blockSizeWidth, blockSizeHeight)
-  
-  const positions = []
-  
+  const blockSizeWidth = containerWidth / gridSizeCols;
+  const blockSizeHeight = containerHeight / gridSizeRows;
+  blockSize = Math.min(blockSizeWidth, blockSizeHeight);
+
+  const positions = [];
+
   // Create grid positions
   for (let row = 0; row < gridSizeRows; row++) {
     for (let col = 0; col < gridSizeCols; col++) {
-      positions.push({ row, col })
+      positions.push({ row, col });
     }
   }
-  
+
   // Start from bottom-left, spread upward and right
-  const visited = new Set()
-  const queue = [{ row: gridSizeRows - 1, col: 0 }]
-  visited.add(`${gridSizeRows - 1},0`)
-  
-  const blocksList = []
-  let delay = 0
-  const baseDelay = 4
-  
+  const visited = new Set();
+  const queue = [{ row: gridSizeRows - 1, col: 0 }];
+  visited.add(`${gridSizeRows - 1},0`);
+
+  const blocksList = [];
+  let delay = 0;
+  const baseDelay = 4;
+
   while (queue.length > 0) {
-    const current = queue.shift()
-    const shape = shapes[Math.floor(Math.random() * shapes.length)]
-    
+    const current = queue.shift();
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+
     blocksList.push({
       id: `${current.row}-${current.col}`,
       x: current.col * blockSize + blockSize / 2,
       y: current.row * blockSize + blockSize / 2,
       shape,
       visible: false,
-      delay
-    })
-    
-    delay += baseDelay
-    
+      delay,
+    });
+
+    delay += baseDelay;
+
     // Add adjacent positions
     const directions = [
       { row: current.row - 1, col: current.col },
       { row: current.row + 1, col: current.col },
       { row: current.row, col: current.col - 1 },
-      { row: current.row, col: current.col + 1 }
-    ]
-    
+      { row: current.row, col: current.col + 1 },
+    ];
+
     for (const dir of directions) {
-      const key = `${dir.row},${dir.col}`
+      const key = `${dir.row},${dir.col}`;
       if (
-        dir.row >= 0 && 
-        dir.row < gridSizeRows && 
-        dir.col >= 0 && 
-        dir.col < gridSizeCols && 
+        dir.row >= 0 &&
+        dir.row < gridSizeRows &&
+        dir.col >= 0 &&
+        dir.col < gridSizeCols &&
         !visited.has(key)
       ) {
-        visited.add(key)
-        queue.push(dir)
+        visited.add(key);
+        queue.push(dir);
       }
     }
   }
-  
+
   // Fill any remaining unvisited positions
   for (let row = 0; row < gridSizeRows; row++) {
     for (let col = 0; col < gridSizeCols; col++) {
-      const key = `${row},${col}`
+      const key = `${row},${col}`;
       if (!visited.has(key)) {
-        const shape = shapes[Math.floor(Math.random() * shapes.length)]
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
         blocksList.push({
           id: key,
           x: col * blockSize,
           y: row * blockSize,
           shape,
           visible: false,
-          delay: 0
-        })
+          delay: 0,
+        });
       }
     }
   }
-  
+
   // Sort blocks from bottom to top for animation order
   blocksList.sort((a, b) => {
-    const rowA = parseInt(a.id.split('-')[0])
-    const rowB = parseInt(b.id.split('-')[0])
-    return rowB - rowA // Bottom rows first (higher row numbers)
-  })
-  
+    const rowA = parseInt(a.id.split("-")[0]);
+    const rowB = parseInt(b.id.split("-")[0]);
+    return rowB - rowA; // Bottom rows first (higher row numbers)
+  });
+
   // Reassign delays based on bottom-to-top order
-  delay = 0
+  delay = 0;
   blocksList.forEach((block) => {
-    block.delay = delay
-    delay += baseDelay
-  })
-  
-  blocks.value = blocksList
-  
+    block.delay = delay;
+    delay += baseDelay;
+  });
+
+  blocks.value = blocksList;
+
   // Animate blocks in
   blocksList.forEach((block) => {
     setTimeout(() => {
-      const blockRef = blocks.value.find(b => b.id === block.id)
+      const blockRef = blocks.value.find((b) => b.id === block.id);
       if (blockRef) {
-        blockRef.visible = true
+        blockRef.visible = true;
       }
-    }, block.delay)
-  })
-}
+    }, block.delay);
+  });
+};
 
 onMounted(async () => {
-  await nextTick()
-  createBlocks()
-  window.addEventListener('resize', handleResize)
-})
+  await nextTick();
+  createBlocks();
+  window.addEventListener("resize", handleResize);
+});
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize)
-})
+  window.removeEventListener("resize", handleResize);
+});
 </script>
 
 <style scoped>
@@ -497,5 +529,4 @@ onBeforeUnmount(() => {
   background-color: var(--text-primary);
   color: var(--background);
 }
-
-</style> 
+</style>

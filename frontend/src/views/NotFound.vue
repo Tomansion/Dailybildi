@@ -3,21 +3,23 @@
     <div class="not-found-content">
       <div class="error-code">404</div>
       <h1>Page Not Found</h1>
-      <p class="error-message">Sorry, the page you're looking for doesn't exist.</p>
-      <router-link to="/" class="home-link">
-        ← Back to Home
-      </router-link>
+      <p class="error-message">
+        Sorry, the page you're looking for doesn't exist.
+      </p>
+      <router-link to="/" class="home-link"> ← Back to Home </router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted } from "vue";
 
 // Log the attempted navigation for debugging
 onMounted(() => {
-  console.warn(`User tried to access non-existent route: ${window.location.pathname}`)
-})
+  console.warn(
+    `User tried to access non-existent route: ${window.location.pathname}`,
+  );
+});
 </script>
 
 <style scoped>

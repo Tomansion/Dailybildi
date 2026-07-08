@@ -292,7 +292,7 @@ onBeforeUnmount(() => {
     align-items: center;
     padding-top: 0px;
   }
-  
+
   .inventory-footer {
     display: flex;
     flex-direction: row;

@@ -14,7 +14,9 @@ export function normalizeCameraZoom(zoom, options = {}) {
   const clampedZoom = Phaser.Math.Clamp(zoom, CAMERA_ZOOM.min, CAMERA_ZOOM.max);
 
   if (!snap) {
-    return Math.round(clampedZoom * CAMERA_ZOOM.precision) / CAMERA_ZOOM.precision;
+    return (
+      Math.round(clampedZoom * CAMERA_ZOOM.precision) / CAMERA_ZOOM.precision
+    );
   }
 
   const remainder = clampedZoom % CAMERA_ZOOM.wheelStep;
@@ -22,7 +24,11 @@ export function normalizeCameraZoom(zoom, options = {}) {
     remainder < CAMERA_ZOOM.wheelStep / 2
       ? clampedZoom - remainder
       : clampedZoom + (CAMERA_ZOOM.wheelStep - remainder);
-  const finalZoom = Phaser.Math.Clamp(adjustedZoom, CAMERA_ZOOM.min, CAMERA_ZOOM.max);
+  const finalZoom = Phaser.Math.Clamp(
+    adjustedZoom,
+    CAMERA_ZOOM.min,
+    CAMERA_ZOOM.max,
+  );
 
   return Math.round(finalZoom * CAMERA_ZOOM.precision) / CAMERA_ZOOM.precision;
 }

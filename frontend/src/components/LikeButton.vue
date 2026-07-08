@@ -1,74 +1,74 @@
 <template>
-  <button 
+  <button
     class="like-btn"
     :class="{ liked: localIsLiked }"
     :disabled="isLoading"
     @click="handleClick"
   >
-    <img 
-      :src="localIsLiked ? '/icons/heart-filled.svg' : '/icons/heart.svg'" 
-      alt="like" 
-      class="like-icon" 
+    <img
+      :src="localIsLiked ? '/icons/heart-filled.svg' : '/icons/heart.svg'"
+      alt="like"
+      class="like-icon"
     />
     {{ localLikeCount }}
   </button>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import api from '../services/api'
+import { ref } from "vue";
+import api from "../services/api";
 
 const props = defineProps({
   worldId: {
     type: String,
-    required: true
+    required: true,
   },
   likeCount: {
     type: Number,
-    required: true
+    required: true,
   },
   isLiked: {
     type: Boolean,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const emit = defineEmits(['update:likeCount', 'update:isLiked'])
+const emit = defineEmits(["update:likeCount", "update:isLiked"]);
 
-const localLikeCount = ref(props.likeCount)
-const localIsLiked = ref(props.isLiked)
-const isLoading = ref(false)
+const localLikeCount = ref(props.likeCount);
+const localIsLiked = ref(props.isLiked);
+const isLoading = ref(false);
 
 const handleClick = async (event) => {
-  event.stopPropagation()
-  
-  if (isLoading.value) return
-  
-  const wasLiked = localIsLiked.value
-  const previousCount = localLikeCount.value
-  isLoading.value = true
-  
+  event.stopPropagation();
+
+  if (isLoading.value) return;
+
+  const wasLiked = localIsLiked.value;
+  const previousCount = localLikeCount.value;
+  isLoading.value = true;
+
   try {
     if (wasLiked) {
-      await api.delete(`/likes/${props.worldId}`)
-      localLikeCount.value = Math.max(0, localLikeCount.value - 1)
-      localIsLiked.value = false
+      await api.delete(`/likes/${props.worldId}`);
+      localLikeCount.value = Math.max(0, localLikeCount.value - 1);
+      localIsLiked.value = false;
     } else {
-      await api.post(`/likes/${props.worldId}`)
-      localLikeCount.value++
-      localIsLiked.value = true
+      await api.post(`/likes/${props.worldId}`);
+      localLikeCount.value++;
+      localIsLiked.value = true;
     }
-    
-    emit('update:likeCount', localLikeCount.value)
-    emit('update:isLiked', localIsLiked.value)
+
+    emit("update:likeCount", localLikeCount.value);
+    emit("update:isLiked", localIsLiked.value);
   } catch (err) {
-    console.error('Failed to toggle like', err)
-    localIsLiked.value = wasLiked
-    localLikeCount.value = previousCount
+    console.error("Failed to toggle like", err);
+    localIsLiked.value = wasLiked;
+    localLikeCount.value = previousCount;
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>
@@ -98,7 +98,8 @@ const handleClick = async (event) => {
 }
 
 .like-btn.liked .like-icon {
-  filter: invert(34%) sepia(100%) saturate(748%) hue-rotate(340deg) brightness(95%) contrast(90%);
+  filter: invert(34%) sepia(100%) saturate(748%) hue-rotate(340deg)
+    brightness(95%) contrast(90%);
 }
 
 .like-btn.liked:hover {

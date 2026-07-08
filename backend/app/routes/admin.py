@@ -1,4 +1,5 @@
 """Administrative utilities routes for database maintenance"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db import get_db
@@ -18,12 +19,12 @@ def cleanup_database(db: Session = Depends(get_db)):
         return {
             "status": "success",
             "message": "Database cleanup completed",
-            "removed": stats
+            "removed": stats,
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database cleanup failed: {str(e)}"
+            detail=f"Database cleanup failed: {str(e)}",
         )
 
 
@@ -35,12 +36,9 @@ def check_database_integrity(db: Session = Depends(get_db)):
     """
     try:
         stats = DatabaseIntegrity.check_integrity(db)
-        return {
-            "status": "success",
-            "orphaned_records": stats
-        }
+        return {"status": "success", "orphaned_records": stats}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Integrity check failed: {str(e)}"
+            detail=f"Integrity check failed: {str(e)}",
         )

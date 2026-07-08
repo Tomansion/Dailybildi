@@ -22,7 +22,9 @@ class WorldService:
         query = db.query(PlacedBlock)
 
         if user_id:
-            query = query.join(World, PlacedBlock.world_id == World.id).filter(World.user_id == user_id)
+            query = query.join(World, PlacedBlock.world_id == World.id).filter(
+                World.user_id == user_id
+            )
 
         placed_block = query.filter(PlacedBlock.id == block_id).first()
         if not placed_block:
@@ -36,10 +38,7 @@ class WorldService:
         if universe_id is None:
             universe_id = settings.UNIVERSE_ID
 
-        world = World(
-            user_id=user_id,
-            universe_id=universe_id
-        )
+        world = World(user_id=user_id, universe_id=universe_id)
         db.add(world)
         db.commit()
         db.refresh(world)
@@ -68,7 +67,7 @@ class WorldService:
         rotation: int = 0,
         flip_x: bool = False,
         flip_y: bool = False,
-        user_id: str = None
+        user_id: str = None,
     ) -> PlacedBlock:
         """Place a block on the world"""
         # CRITICAL: Validate inventory BEFORE creating placed block
@@ -77,14 +76,19 @@ class WorldService:
             inventory = InventoryService.get_user_inventory(db, user_id)
             if not inventory:
                 raise ValueError("User inventory not found")
-            
+
             # Check if user has this block in inventory with quantity > 0
             from app.models import InventoryBlock
-            inventory_block = db.query(InventoryBlock).filter(
-                InventoryBlock.inventory_id == inventory.id,
-                InventoryBlock.block_catalog_id == block_catalog_id
-            ).first()
-            
+
+            inventory_block = (
+                db.query(InventoryBlock)
+                .filter(
+                    InventoryBlock.inventory_id == inventory.id,
+                    InventoryBlock.block_catalog_id == block_catalog_id,
+                )
+                .first()
+            )
+
             if not inventory_block or inventory_block.quantity <= 0:
                 raise ValueError("Block not found in inventory or out of stock")
 
@@ -97,17 +101,14 @@ class WorldService:
             rotation=rotation,
             flip_x=flip_x,
             flip_y=flip_y,
-            z_order=z_order
+            z_order=z_order,
         )
         db.add(placed_block)
 
         # Remove block from inventory if user_id is provided
         if user_id:
             InventoryService.remove_block_from_inventory(
-                db,
-                user_id,
-                block_catalog_id,
-                quantity=1
+                db, user_id, block_catalog_id, quantity=1
             )
 
         # Update world timestamp
@@ -129,7 +130,7 @@ class WorldService:
         flip_x: Optional[bool] = None,
         flip_y: Optional[bool] = None,
         z_order: Optional[int] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
     ) -> PlacedBlock:
         """Update a placed block's position and properties"""
         placed_block = WorldService._get_user_owned_placed_block(db, block_id, user_id)
@@ -157,7 +158,9 @@ class WorldService:
         return placed_block
 
     @staticmethod
-    def update_placed_blocks(db: Session, updates: list, user_id: str = None) -> list[PlacedBlock]:
+    def update_placed_blocks(
+        db: Session, updates: list, user_id: str = None
+    ) -> list[PlacedBlock]:
         """Update multiple placed blocks in a single transaction."""
         if not updates:
             return []
@@ -166,7 +169,9 @@ class WorldService:
         touched_world_ids = set()
 
         for update in updates:
-            placed_block = WorldService._get_user_owned_placed_block(db, update.block_id, user_id)
+            placed_block = WorldService._get_user_owned_placed_block(
+                db, update.block_id, user_id
+            )
 
             if update.grid_x is not None:
                 placed_block.grid_x = update.grid_x
@@ -220,47 +225,52 @@ class WorldService:
         skip: int = 0,
         limit: int = 20,
         sort_by: str = "recent",
-        user_id: str = None
+        user_id: str = None,
     ) -> tuple[list, int]:
         """Get paginated community worlds"""
         from sqlalchemy.orm import selectinload
         from app.services.like_service import LikeService
-        
+
         # Query all worlds (including orphaned ones)
         base_query = db.query(World)
         total = base_query.count()
-        
+
         # Sort
         if sort_by == "likes":
             base_query = base_query.order_by(desc(World.like_count))
         else:  # "recent"
             base_query = base_query.order_by(desc(World.updated_at))
-        
+
         # Paginate first to get IDs
         paginated_worlds = base_query.offset(skip).limit(limit).all()
-        
+
         if not paginated_worlds:
             return [], total
-        
+
         world_ids = [w.id for w in paginated_worlds]
-        
+
         # Load worlds with relationships (user may be None for orphaned worlds)
-        worlds = db.query(World).filter(
-            World.id.in_(world_ids)
-        ).options(
-            selectinload(World.user),
-            selectinload(World.placed_blocks).selectinload(PlacedBlock.block_catalog)
-        ).all()
-        
+        worlds = (
+            db.query(World)
+            .filter(World.id.in_(world_ids))
+            .options(
+                selectinload(World.user),
+                selectinload(World.placed_blocks).selectinload(
+                    PlacedBlock.block_catalog
+                ),
+            )
+            .all()
+        )
+
         # Get user's liked worlds if authenticated
         user_liked_worlds = set()
         if user_id:
             user_liked_worlds = set(LikeService.get_user_liked_worlds(db, user_id))
-        
+
         # Add liked flag to each world
         for world in worlds:
             world.liked = world.id in user_liked_worlds  # type: ignore
-        
+
         # Sort results to match original order
         if sort_by == "likes":
             worlds = sorted(worlds, key=lambda w: w.like_count, reverse=True)

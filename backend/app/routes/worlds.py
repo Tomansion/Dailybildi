@@ -23,20 +23,28 @@ router = APIRouter(prefix="/api/world", tags=["worlds"])
 def get_current_user_id(authorization: str = Header(None)) -> str:
     """Extract user ID from JWT token in Authorization header"""
     if not authorization:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
-    
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token"
+        )
+
     parts = authorization.split()
     if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token format")
-    
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token format"
+        )
+
     token = parts[1]
     payload = verify_token(token)
     if not payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
 
     user_id = payload.get("sub")
     if not isinstance(user_id, str):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
 
     return cast(str, user_id)
 
@@ -46,32 +54,32 @@ def _enrich_placed_blocks_with_metadata(world):
     try:
         block_metadata_map = {}
         universes = UniverseService.list_universes()
-        
+
         for universe in universes:
-            blocks = BlockLoader.load_blocks(universe['id'])
+            blocks = BlockLoader.load_blocks(universe["id"])
             for block in blocks:
                 block_metadata_map[block.id] = {
-                    'block_id': block.block_id,
-                    'layer': block.layer,
-                    'rarity': block.rarity,
-                    'image_path': block.image_path,
-                    'width': block.width,
-                    'height': block.height
+                    "block_id": block.block_id,
+                    "layer": block.layer,
+                    "rarity": block.rarity,
+                    "image_path": block.image_path,
+                    "width": block.width,
+                    "height": block.height,
                 }
-        
+
         # Enrich each placed block
         for block in world.placed_blocks:
             metadata = block_metadata_map.get(block.block_catalog_id, {})
-            block.block_id = metadata.get('block_id', '')
-            block.layer = metadata.get('layer', 0)
-            block.rarity = metadata.get('rarity', 0)
-            block.image_path = metadata.get('image_path', '')
-            block.width = metadata.get('width', 1)
-            block.height = metadata.get('height', 1)
+            block.block_id = metadata.get("block_id", "")
+            block.layer = metadata.get("layer", 0)
+            block.rarity = metadata.get("rarity", 0)
+            block.image_path = metadata.get("image_path", "")
+            block.width = metadata.get("width", 1)
+            block.height = metadata.get("height", 1)
     except Exception as e:
         # Log error but don't fail - blocks will just have empty metadata
         print(f"Error enriching placed blocks: {str(e)}")
-    
+
     return world
 
 
@@ -81,15 +89,15 @@ def _build_block_metadata_map():
     universes = UniverseService.list_universes()
 
     for universe in universes:
-        blocks = BlockLoader.load_blocks(universe['id'])
+        blocks = BlockLoader.load_blocks(universe["id"])
         for block in blocks:
             block_metadata_map[block.id] = {
-                'block_id': block.block_id,
-                'layer': block.layer,
-                'rarity': block.rarity,
-                'image_path': block.image_path,
-                'width': block.width,
-                'height': block.height
+                "block_id": block.block_id,
+                "layer": block.layer,
+                "rarity": block.rarity,
+                "image_path": block.image_path,
+                "width": block.width,
+                "height": block.height,
             }
 
     return block_metadata_map
@@ -98,26 +106,30 @@ def _build_block_metadata_map():
 def _enrich_placed_block_with_metadata(placed_block, block_metadata_map):
     """Enrich one placed block with filesystem metadata."""
     metadata = block_metadata_map.get(placed_block.block_catalog_id, {})
-    placed_block.block_id = metadata.get('block_id', '')
-    placed_block.layer = metadata.get('layer', 0)
-    placed_block.rarity = metadata.get('rarity', 0)
-    placed_block.image_path = metadata.get('image_path', '')
-    placed_block.width = metadata.get('width', 1)
-    placed_block.height = metadata.get('height', 1)
+    placed_block.block_id = metadata.get("block_id", "")
+    placed_block.layer = metadata.get("layer", 0)
+    placed_block.rarity = metadata.get("rarity", 0)
+    placed_block.image_path = metadata.get("image_path", "")
+    placed_block.width = metadata.get("width", 1)
+    placed_block.height = metadata.get("height", 1)
     return placed_block
 
 
 @router.get("", response_model=WorldResponse)
-def get_user_world(db: Session = Depends(get_db), user_id: str = Depends(get_current_user_id)):
+def get_user_world(
+    db: Session = Depends(get_db), user_id: str = Depends(get_current_user_id)
+):
     """Get current user's world"""
     try:
         world = WorldService.get_user_world(db, user_id)
         if not world:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="World not found")
-        
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="World not found"
+            )
+
         # Enrich placed blocks with metadata from filesystem
         world = _enrich_placed_blocks_with_metadata(world)
-        
+
         # Add universe config
         try:
             universe_config = UniverseService.get_universe_config(world.universe_id)
@@ -125,47 +137,56 @@ def get_user_world(db: Session = Depends(get_db), user_id: str = Depends(get_cur
                 "backgroundColor": universe_config.get("backgroundColor", "#ffffff"),
                 "textColor": universe_config.get("textColor"),
                 "blockSize": universe_config.get("blockSize", 64),
-                "worldImageScale": universe_config.get("worldImageScale", 1.0)
+                "worldImageScale": universe_config.get("worldImageScale", 1.0),
             }
         except Exception as e:
             print(f"Error loading universe config: {str(e)}")
-        
+
         return world
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.post("", response_model=PlacedBlockResponse)
 def place_block(
     request: PlacedBlockRequest,
     db: Session = Depends(get_db),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
 ):
     """Place a block on user's world"""
     try:
         # Get user's world
         world = WorldService.get_user_world(db, user_id)
         if not world:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="World not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="World not found"
+            )
 
         # Check if user has this block in inventory
         inventory = InventoryService.get_user_inventory(db, user_id)
         if not inventory:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Inventory not found"
+            )
 
         # Verify the block exists in inventory with quantity > 0
         block_in_inventory = None
         for inv_block in inventory.blocks:
-            if inv_block.block_catalog_id == request.block_catalog_id and inv_block.quantity > 0:
+            if (
+                inv_block.block_catalog_id == request.block_catalog_id
+                and inv_block.quantity > 0
+            ):
                 block_in_inventory = inv_block
                 break
-        
+
         if not block_in_inventory:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Block not found in inventory or out of stock"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Block not found in inventory or out of stock",
             )
 
         # Place the block
@@ -179,13 +200,15 @@ def place_block(
             request.rotation,
             request.flip_x,
             request.flip_y,
-            user_id=user_id
+            user_id=user_id,
         )
-        
+
         # Enrich with block metadata
         try:
             block_metadata_map = _build_block_metadata_map()
-            placed_block = _enrich_placed_block_with_metadata(placed_block, block_metadata_map)
+            placed_block = _enrich_placed_block_with_metadata(
+                placed_block, block_metadata_map
+            )
         except Exception as e:
             print(f"Error enriching placed block: {str(e)}")
 
@@ -195,7 +218,9 @@ def place_block(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.get("/{world_id}", response_model=CommunityWorldResponse)
@@ -204,11 +229,13 @@ def get_world(world_id: str, db: Session = Depends(get_db)):
     try:
         world = WorldService.get_world_by_id(db, world_id)
         if not world:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="World not found")
-        
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="World not found"
+            )
+
         # Enrich placed blocks with metadata from filesystem
         world = _enrich_placed_blocks_with_metadata(world)
-        
+
         # Add universe config
         try:
             universe_config = UniverseService.get_universe_config(world.universe_id)
@@ -216,30 +243,30 @@ def get_world(world_id: str, db: Session = Depends(get_db)):
                 "backgroundColor": universe_config.get("backgroundColor", "#ffffff"),
                 "textColor": universe_config.get("textColor"),
                 "blockSize": universe_config.get("blockSize", 64),
-                "worldImageScale": universe_config.get("worldImageScale", 1.0)
+                "worldImageScale": universe_config.get("worldImageScale", 1.0),
             }
         except Exception as e:
             print(f"Error loading universe config: {str(e)}")
-        
+
         return world
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.patch("/blocks/batch", response_model=list[PlacedBlockResponse])
 def update_placed_blocks_batch(
     request: BatchPlacedBlockUpdateRequest,
     db: Session = Depends(get_db),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
 ):
     """Update multiple placed blocks in one request."""
     try:
         placed_blocks = WorldService.update_placed_blocks(
-            db,
-            request.updates,
-            user_id=user_id
+            db, request.updates, user_id=user_id
         )
 
         try:
@@ -255,7 +282,9 @@ def update_placed_blocks_batch(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.patch("/blocks/{block_id}", response_model=PlacedBlockResponse)
@@ -263,7 +292,7 @@ def update_placed_block(
     block_id: str,
     request: PlacedBlockUpdateRequest,
     db: Session = Depends(get_db),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
 ):
     """Update a placed block's position and properties"""
     try:
@@ -276,7 +305,7 @@ def update_placed_block(
             request.flip_x,
             request.flip_y,
             request.z_order,
-            user_id=user_id
+            user_id=user_id,
         )
 
         # Enrich with block metadata
@@ -293,26 +322,32 @@ def update_placed_block(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.delete("/blocks/{block_id}")
 def remove_placed_block(
     block_id: str,
     db: Session = Depends(get_db),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
 ):
     """Remove a placed block from the world"""
     try:
         success = WorldService.remove_placed_block(db, block_id)
         if not success:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Block not found")
-        
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Block not found"
+            )
+
         # Return block to inventory
         # This could be implemented if needed
-        
+
         return {"message": "Block removed successfully"}
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )

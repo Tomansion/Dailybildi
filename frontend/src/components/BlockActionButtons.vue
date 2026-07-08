@@ -15,58 +15,112 @@
       <img src="/icons/selection.svg" class="icon" alt="Selection mode" />
     </button>
     <div v-if="hasSelectedBlock" class="separator"></div>
-    <button v-if="hasSelectedBlock" class="action-btn" title="Rotate 90° (R)" @click.stop="onRotate">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button
+      v-if="hasSelectedBlock"
+      class="action-btn"
+      title="Rotate 90° (R)"
+      @click.stop="onRotate"
+    >
+      <svg
+        class="icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M1 4v6h6M23 20v-6h-6" />
         <path d="M20.49 9A9 9 0 0 0 5.64 5.64M3.51 15A9 9 0 0 0 18.36 18.36" />
       </svg>
       <span class="shortcut">R</span>
     </button>
-    <button v-if="hasSelectedBlock" class="action-btn" title="Flip Horizontal (H)" @click.stop="onFlipHorizontal">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button
+      v-if="hasSelectedBlock"
+      class="action-btn"
+      title="Flip Horizontal (H)"
+      @click.stop="onFlipHorizontal"
+    >
+      <svg
+        class="icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M3 4h18v16H3zM10 9v6M14 9v6" />
       </svg>
       <span class="shortcut">H</span>
     </button>
-    <button v-if="hasSelectedBlock" class="action-btn" title="Flip Vertical (V)" @click.stop="onFlipVertical">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button
+      v-if="hasSelectedBlock"
+      class="action-btn"
+      title="Flip Vertical (V)"
+      @click.stop="onFlipVertical"
+    >
+      <svg
+        class="icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M4 3v18h16V3zM9 10h6M9 14h6" />
       </svg>
       <span class="shortcut">V</span>
     </button>
     <div v-if="hasSelectedBlock" class="separator"></div>
-    <button v-if="hasSelectedBlock" class="action-btn danger" title="Discard" @click.stop="onDiscard">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button
+      v-if="hasSelectedBlock"
+      class="action-btn danger"
+      title="Discard"
+      @click.stop="onDiscard"
+    >
+      <svg
+        class="icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <path
+          d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+        />
       </svg>
     </button>
   </div>
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits } from "vue";
 
 const props = defineProps({
   hasSelectedBlock: {
     type: Boolean,
-    default: false
+    default: false,
   },
   selectionModeActive: {
     type: Boolean,
-    default: false
-  }
-})
+    default: false,
+  },
+});
 
-const emit = defineEmits(['rotate', 'flip-horizontal', 'flip-vertical', 'discard', 'zoom-in', 'zoom-out', 'toggle-selection-mode'])
+const emit = defineEmits([
+  "rotate",
+  "flip-horizontal",
+  "flip-vertical",
+  "discard",
+  "zoom-in",
+  "zoom-out",
+  "toggle-selection-mode",
+]);
 
-const onRotate = () => emit('rotate')
-const onFlipHorizontal = () => emit('flip-horizontal')
-const onFlipVertical = () => emit('flip-vertical')
-const onDiscard = () => emit('discard')
-const onZoomIn = () => emit('zoom-in')
-const onZoomOut = () => emit('zoom-out')
-const onToggleSelectionMode = () => emit('toggle-selection-mode')
+const onRotate = () => emit("rotate");
+const onFlipHorizontal = () => emit("flip-horizontal");
+const onFlipVertical = () => emit("flip-vertical");
+const onDiscard = () => emit("discard");
+const onZoomIn = () => emit("zoom-in");
+const onZoomOut = () => emit("zoom-out");
+const onToggleSelectionMode = () => emit("toggle-selection-mode");
 </script>
 
 <style scoped>

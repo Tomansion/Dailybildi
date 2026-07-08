@@ -1,4 +1,5 @@
 """Pytest configuration and fixtures"""
+
 import pytest
 import os
 import sys
@@ -38,7 +39,7 @@ def test_db():
     """Create an in-memory test database"""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(bind=engine)
-    
+
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     SessionLocal.bind = engine
     return SessionLocal
@@ -50,9 +51,9 @@ def db(test_db):
     connection = test_db.bind.connect()
     transaction = connection.begin()
     session = test_db(bind=connection)
-    
+
     yield session
-    
+
     session.close()
     transaction.rollback()
     connection.close()
@@ -65,7 +66,7 @@ def test_user(db):
         id="test-user-1",
         username="testuser",
         display_name="Test User",
-        password_hash="hashed_password"
+        password_hash="hashed_password",
     )
     db.add(user)
     db.commit()
@@ -80,7 +81,7 @@ def test_inventory(db, test_user):
         user_id=test_user.id,
         initial_blocks_received=False,
         last_blocks_provided_date=None,
-        last_distributions={}
+        last_distributions={},
     )
     db.add(inventory)
     db.commit()
@@ -98,7 +99,7 @@ def test_blocks_catalog(db):
             layer=0,
             rarity=0,
             universe_id="test_universe",
-            image_path=f"/tiles/block_{i}.png"
+            image_path=f"/tiles/block_{i}.png",
         )
         for i in range(1, 6)
     ]
@@ -111,7 +112,7 @@ def test_blocks_catalog(db):
 def mock_block_loader():
     """Mock BlockLoader to return test blocks for test universes"""
     original_load = BlockLoader.load_blocks
-    
+
     def mock_load(universe_id: str):
         # For test_universe or ink_castle, return test blocks
         if universe_id in ["test_universe", "ink_castle"]:
@@ -121,13 +122,13 @@ def mock_block_loader():
                     layer=0,
                     rarity=0,
                     image_path=f"/tiles/block_{i}.png",
-                    universe_id=universe_id
+                    universe_id=universe_id,
                 )
                 for i in range(1, 6)
             ]
             return blocks
         return []
-    
+
     # Patch BlockLoader.load_blocks
-    with patch.object(BlockLoader, 'load_blocks', side_effect=mock_load):
+    with patch.object(BlockLoader, "load_blocks", side_effect=mock_load):
         yield

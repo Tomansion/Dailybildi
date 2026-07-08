@@ -2,7 +2,9 @@
   <div class="universes-page">
     <div class="container">
       <h1>Choose Your Universe</h1>
-      <p class="page-subtitle">Pick a universe to explore and start placing blocks</p>
+      <p class="page-subtitle">
+        Pick a universe to explore and start placing blocks
+      </p>
 
       <div v-if="loading" class="loading">Loading universes...</div>
 
@@ -18,9 +20,10 @@
           :key="universe.id"
           class="universe-card"
           @click="enterUniverse(universe.id)"
-          :style="{ 
-            backgroundColor: universe.config?.backgroundColor || 'var(--surface)',
-            color: universe.config?.textColor || 'var(--text-primary)'
+          :style="{
+            backgroundColor:
+              universe.config?.backgroundColor || 'var(--surface)',
+            color: universe.config?.textColor || 'var(--text-primary)',
           }"
         >
           <WorldPreview
@@ -37,11 +40,21 @@
           <h3>{{ universe.name }}</h3>
           <div class="universe-stats">
             <p>
-              <img src="/icons/blocks.svg" alt="available blocks" class="stat-icon" />
-              {{ universe.available_blocks }} available block{{ universe.available_blocks === 1 ? '' : 's' }}
+              <img
+                src="/icons/blocks.svg"
+                alt="available blocks"
+                class="stat-icon"
+              />
+              {{ universe.available_blocks }} available block{{
+                universe.available_blocks === 1 ? "" : "s"
+              }}
             </p>
             <p>
-              <img src="/icons/bricks.svg" alt="placed blocks" class="stat-icon" />
+              <img
+                src="/icons/bricks.svg"
+                alt="placed blocks"
+                class="stat-icon"
+              />
               {{ universe.placed_blocks }} blocks placed
             </p>
           </div>
@@ -49,7 +62,7 @@
             :disabled="enteringUniverse === universe.id"
             class="enter-button"
           >
-            {{ enteringUniverse === universe.id ? 'Loading...' : 'Enter' }}
+            {{ enteringUniverse === universe.id ? "Loading..." : "Enter" }}
           </BaseButton>
         </BaseCard>
 
@@ -57,9 +70,11 @@
           class="universe-card more-card"
           @click="router.push('/universe-contribution')"
         >
-          <img id="style-image" src="/images/styles.png">
+          <img id="style-image" src="/images/styles.png" />
           <h3>Want more universes?</h3>
-          <p class="more-description">Contribute your own universe — your own theme, your own blocks.</p>
+          <p class="more-description">
+            Contribute your own universe — your own theme, your own blocks.
+          </p>
           <span class="more-link">Learn how →</span>
         </BaseCard>
       </div>
@@ -73,21 +88,21 @@ import api from "@/services/api";
 import { useRouter } from "vue-router";
 import BaseCard from "@/components/base/BaseCard.vue";
 import BaseButton from "@/components/base/BaseButton.vue";
-import WorldPreview from '@/components/WorldPreview.vue'
+import WorldPreview from "@/components/WorldPreview.vue";
 
 export default {
   name: "Universes",
   components: {
     BaseCard,
     BaseButton,
-    WorldPreview
+    WorldPreview,
   },
   data() {
     return {
       universes: [],
       loading: true,
       error: null,
-      enteringUniverse: null
+      enteringUniverse: null,
     };
   },
   setup() {
@@ -100,7 +115,7 @@ export default {
 
     return {
       authStore,
-      router
+      router,
     };
   },
   mounted() {
@@ -114,12 +129,15 @@ export default {
         const token = this.authStore.token;
         const response = await api.get("/universes/", {
           headers: {
-            "Authorization": `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
         this.universes = response.data.universes;
       } catch (error) {
-        this.error = error.response?.data?.detail || error.message || "Failed to load universes";
+        this.error =
+          error.response?.data?.detail ||
+          error.message ||
+          "Failed to load universes";
       } finally {
         this.loading = false;
       }
@@ -130,15 +148,18 @@ export default {
         const response = await api.post(`/universes/${universeId}/enter/auth`);
         this.router.push({
           path: "/canvas",
-          query: { world_id: response.data.world_id }
+          query: { world_id: response.data.world_id },
         });
       } catch (error) {
-        this.error = error.response?.data?.detail || error.message || "Failed to enter universe";
+        this.error =
+          error.response?.data?.detail ||
+          error.message ||
+          "Failed to enter universe";
       } finally {
         this.enteringUniverse = null;
       }
-    }
-  }
+    },
+  },
 };
 </script>
 

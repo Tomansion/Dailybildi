@@ -1,55 +1,55 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import api from '../services/api'
-import { getTileImageUrl } from '../services/urls'
+import { defineStore } from "pinia";
+import { ref } from "vue";
+import api from "../services/api";
+import { getTileImageUrl } from "../services/urls";
 
-export const useInventoryStore = defineStore('inventory', () => {
-  const inventory = ref(null)
-  const placedBlocks = ref([])
-  const loading = ref(false)
-  const error = ref(null)
-  let worldMutationQueue = Promise.resolve()
+export const useInventoryStore = defineStore("inventory", () => {
+  const inventory = ref(null);
+  const placedBlocks = ref([]);
+  const loading = ref(false);
+  const error = ref(null);
+  let worldMutationQueue = Promise.resolve();
 
   const enqueueWorldMutation = (operation) => {
     const runOperation = async () => {
       try {
-        return await operation()
+        return await operation();
       } catch (err) {
-        error.value = err.message
-        throw err
+        error.value = err.message;
+        throw err;
       }
-    }
+    };
 
-    const queuedOperation = worldMutationQueue.then(runOperation, runOperation)
+    const queuedOperation = worldMutationQueue.then(runOperation, runOperation);
 
-    worldMutationQueue = queuedOperation.catch(() => undefined)
+    worldMutationQueue = queuedOperation.catch(() => undefined);
 
-    return queuedOperation
-  }
+    return queuedOperation;
+  };
 
   const fetchInventory = async () => {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
     try {
-      const response = await api.get('/inventory')
-      inventory.value = response.data
+      const response = await api.get("/inventory");
+      inventory.value = response.data;
     } catch (err) {
-      error.value = err.message
-      throw err
+      error.value = err.message;
+      throw err;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  }
+  };
 
   const fetchWorldBlocks = async () => {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
     try {
-      const response = await api.get('/world')
-      const world = response.data
-      
+      const response = await api.get("/world");
+      const world = response.data;
+
       // Transform placed blocks to match Phaser format
-      placedBlocks.value = (world.placed_blocks || []).map(block => ({
+      placedBlocks.value = (world.placed_blocks || []).map((block) => ({
         _key: block.id,
         blockKey: block.id,
         blockCatalogKey: block.block_id,
@@ -63,43 +63,48 @@ export const useInventoryStore = defineStore('inventory', () => {
           id: block.block_catalog_id,
           layer: block.layer,
           rarity: block.rarity,
-          imagePath: getTileImageUrl(block.image_path)
-        }
-      }))
-      
-      return placedBlocks.value
-    } catch (err) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+          imagePath: getTileImageUrl(block.image_path),
+        },
+      }));
 
-  const placeBlock = async (blockCatalogKey, gridX, gridY, transformations = {}) => {
+      return placedBlocks.value;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const placeBlock = async (
+    blockCatalogKey,
+    gridX,
+    gridY,
+    transformations = {},
+  ) => {
     return enqueueWorldMutation(async () => {
       // Find the block catalog ID from the inventory
       const block = inventory.value?.blocks?.find(
-        b => b.block_id === blockCatalogKey
-      )
-      
+        (b) => b.block_id === blockCatalogKey,
+      );
+
       if (!block) {
-        throw new Error(`Block ${blockCatalogKey} not found in inventory`)
+        throw new Error(`Block ${blockCatalogKey} not found in inventory`);
       }
 
-      const response = await api.post('/world', {
+      const response = await api.post("/world", {
         block_catalog_id: block.block_catalog_id,
         grid_x: gridX,
         grid_y: gridY,
         z_order: 0,
         rotation: transformations.rotation ?? 0,
         flip_x: transformations.flipX ?? false,
-        flip_y: transformations.flipY ?? false
-      })
-      
-      return response.data
-    })
-  }
+        flip_y: transformations.flipY ?? false,
+      });
+
+      return response.data;
+    });
+  };
 
   const updateBlock = async (blockKey, updates) => {
     return enqueueWorldMutation(async () => {
@@ -109,16 +114,16 @@ export const useInventoryStore = defineStore('inventory', () => {
         rotation: updates.rotation,
         flip_x: updates.flipX,
         flip_y: updates.flipY,
-        z_order: updates.zOrder || 0
-      })
-      
-      return response.data
-    })
-  }
+        z_order: updates.zOrder || 0,
+      });
+
+      return response.data;
+    });
+  };
 
   const updateBlocksBatch = async (updates) => {
     return enqueueWorldMutation(async () => {
-      const response = await api.patch('/world/blocks/batch', {
+      const response = await api.patch("/world/blocks/batch", {
         updates: updates.map((update) => ({
           block_id: update.blockKey,
           grid_x: update.gridX,
@@ -126,33 +131,35 @@ export const useInventoryStore = defineStore('inventory', () => {
           rotation: update.rotation,
           flip_x: update.flipX,
           flip_y: update.flipY,
-          z_order: update.zOrder || 0
-        }))
-      })
+          z_order: update.zOrder || 0,
+        })),
+      });
 
-      return response.data
-    })
-  }
+      return response.data;
+    });
+  };
 
   const removeBlock = async (blockKey) => {
     return enqueueWorldMutation(async () => {
-      await api.delete(`/world/blocks/${blockKey}`)
+      await api.delete(`/world/blocks/${blockKey}`);
       // Remove from local state
-      placedBlocks.value = placedBlocks.value.filter(b => b._key !== blockKey)
-    })
-  }
+      placedBlocks.value = placedBlocks.value.filter(
+        (b) => b._key !== blockKey,
+      );
+    });
+  };
 
   const addBlock = async (blockId, quantity = 1) => {
     try {
-      await api.post('/inventory/add-block', null, {
-        params: { block_id: blockId, quantity }
-      })
-      await fetchInventory()
+      await api.post("/inventory/add-block", null, {
+        params: { block_id: blockId, quantity },
+      });
+      await fetchInventory();
     } catch (err) {
-      error.value = err.message
-      throw err
+      error.value = err.message;
+      throw err;
     }
-  }
+  };
 
   return {
     inventory,
@@ -165,6 +172,6 @@ export const useInventoryStore = defineStore('inventory', () => {
     updateBlock,
     updateBlocksBatch,
     removeBlock,
-    addBlock
-  }
-})
+    addBlock,
+  };
+});

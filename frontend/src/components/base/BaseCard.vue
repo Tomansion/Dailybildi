@@ -8,10 +8,10 @@
 defineProps({
   variant: {
     type: String,
-    default: 'default',
-    validator: (value) => ['default', 'elevated'].includes(value)
-  }
-})
+    default: "default",
+    validator: (value) => ["default", "elevated"].includes(value),
+  },
+});
 </script>
 
 <style scoped>

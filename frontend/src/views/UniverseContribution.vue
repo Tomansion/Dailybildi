@@ -104,8 +104,7 @@ public/univers/my_universe/
 └── world/
     ├── layer1.png   ← background parallax layers
     ├── layer2.png
-    └── ...</pre
-          >
+    └── ...</pre>
         </div>
       </section>
 
@@ -124,8 +123,7 @@ public/univers/my_universe/
   "blockSize": 40,
   "worldImages": [ ... ],
   "blocks": [ ... ]
-}</pre
-          >
+}</pre>
         </div>
 
         <div class="field-list">
@@ -173,8 +171,7 @@ public/univers/my_universe/
   { "path": "world/layer2.png", "distance":  0   },
   { "path": "world/layer3.png", "distance":  0.5 },
   ...
-]</pre
-          >
+]</pre>
         </div>
 
         <div class="field-list">
@@ -206,8 +203,7 @@ public/univers/my_universe/
   { "id": 0,  "layer": 0, "rarity": 1, "imagePath": "tiles/tile1.png"  },
   { "id": 4,  "layer": 1, "rarity": 6, "imagePath": "tiles/tile2.png"  },
   { "id": 11, "layer": 2, "rarity": 9, "imagePath": "tiles/tile3.png" }
-]</pre
-          >
+]</pre>
         </div>
 
         <div class="field-list">

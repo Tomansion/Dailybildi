@@ -1,5 +1,14 @@
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, UniqueConstraint, JSON
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    DateTime,
+    Boolean,
+    ForeignKey,
+    UniqueConstraint,
+    JSON,
+)
 from sqlalchemy.orm import relationship
 from app.db import Base
 import uuid
@@ -17,7 +26,9 @@ class User(Base):
     received_initial_blocks = Column(Boolean, default=False)
 
     # Relationships
-    inventory = relationship("UserInventory", back_populates="user", cascade="all, delete-orphan")
+    inventory = relationship(
+        "UserInventory", back_populates="user", cascade="all, delete-orphan"
+    )
     worlds = relationship("World", back_populates="user", cascade="all, delete-orphan")
     likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
 
@@ -41,28 +52,38 @@ class UserInventory(Base):
     __tablename__ = "user_inventory"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False)
+    user_id = Column(
+        String, ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     initial_blocks_received = Column(Boolean, default=False)
-    last_blocks_provided_date = Column(String, nullable=True)  # Legacy: Format: YYYY-MM-DD
-    last_distributions = Column(JSON, default=dict)  # Per-universe distribution dates: {universe_id: YYYY-MM-DD}
+    last_blocks_provided_date = Column(
+        String, nullable=True
+    )  # Legacy: Format: YYYY-MM-DD
+    last_distributions = Column(
+        JSON, default=dict
+    )  # Per-universe distribution dates: {universe_id: YYYY-MM-DD}
 
     # Relationships
     user = relationship("User", back_populates="inventory")
-    blocks = relationship("InventoryBlock", back_populates="inventory", cascade="all, delete-orphan")
+    blocks = relationship(
+        "InventoryBlock", back_populates="inventory", cascade="all, delete-orphan"
+    )
 
 
 class InventoryBlock(Base):
     __tablename__ = "inventory_block"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    inventory_id = Column(String, ForeignKey("user_inventory.id", ondelete="CASCADE"), nullable=False)
+    inventory_id = Column(
+        String, ForeignKey("user_inventory.id", ondelete="CASCADE"), nullable=False
+    )
     block_catalog_id = Column(String, ForeignKey("block_catalog.id"), nullable=False)
     quantity = Column(Integer, default=1)
     acquired_date = Column(DateTime, default=datetime.utcnow)
 
     # Unique constraint on (inventoryId, blockCatalogId)
-    __table_args__ = (UniqueConstraint('inventory_id', 'block_catalog_id'),)
+    __table_args__ = (UniqueConstraint("inventory_id", "block_catalog_id"),)
 
     # Relationships
     inventory = relationship("UserInventory", back_populates="blocks")
@@ -81,7 +102,9 @@ class World(Base):
 
     # Relationships
     user = relationship("User", back_populates="worlds")
-    placed_blocks = relationship("PlacedBlock", back_populates="world", cascade="all, delete-orphan")
+    placed_blocks = relationship(
+        "PlacedBlock", back_populates="world", cascade="all, delete-orphan"
+    )
     likes = relationship("Like", back_populates="world", cascade="all, delete-orphan")
 
 
@@ -89,7 +112,9 @@ class PlacedBlock(Base):
     __tablename__ = "placed_block"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    world_id = Column(String, ForeignKey("world.id", ondelete="CASCADE"), nullable=False)
+    world_id = Column(
+        String, ForeignKey("world.id", ondelete="CASCADE"), nullable=False
+    )
     block_catalog_id = Column(String, ForeignKey("block_catalog.id"), nullable=False)
     grid_x = Column(Integer, nullable=False)
     grid_y = Column(Integer, nullable=False)
@@ -109,11 +134,13 @@ class Like(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
-    world_id = Column(String, ForeignKey("world.id", ondelete="CASCADE"), nullable=False)
+    world_id = Column(
+        String, ForeignKey("world.id", ondelete="CASCADE"), nullable=False
+    )
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Unique constraint on (userId, worldId)
-    __table_args__ = (UniqueConstraint('user_id', 'world_id'),)
+    __table_args__ = (UniqueConstraint("user_id", "world_id"),)
 
     # Relationships
     user = relationship("User", back_populates="likes")
