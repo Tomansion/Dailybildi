@@ -17,12 +17,14 @@
 
       <BlockActionButtons
         :hasSelectedBlock="hasSelectedBlock || isInPlacementMode"
+        :selectionModeActive="isSelectionMode"
         @rotate="handleRotate"
         @flip-horizontal="handleFlipHorizontal"
         @flip-vertical="handleFlipVertical"
         @discard="handleDiscard"
         @zoom-in="handleZoomIn"
         @zoom-out="handleZoomOut"
+        @toggle-selection-mode="handleToggleSelectionMode"
       />
     </div>
 
@@ -48,6 +50,7 @@ const loading = ref(true);
 const error = ref(null);
 const hasSelectedBlock = ref(false);
 const selectedBlockForPlacement = ref(null);
+const isSelectionMode = ref(false);
 
 let phaserGame = null;
 let mainScene = null;
@@ -95,6 +98,8 @@ const handleBlockSelect = (block) => {
   };
 
   if (mainScene) {
+    isSelectionMode.value = false;
+    mainScene.setSelectionMode(false);
     mainScene.selectBlockForPlacement(selectedBlockForPlacement.value);
   }
 };
@@ -200,6 +205,20 @@ const handleZoomOut = () => {
   if (mainScene) mainScene.zoomOut();
 };
 
+const handleToggleSelectionMode = () => {
+  const nextValue = !isSelectionMode.value;
+
+  if (nextValue && isInPlacementMode.value) {
+    cancelBlockPlacement();
+  }
+
+  isSelectionMode.value = nextValue;
+
+  if (mainScene) {
+    mainScene.setSelectionMode(nextValue);
+  }
+};
+
 const selectNextBlock = (direction = 1) => {
   if (inventoryBlocks.value.length === 0 || !selectedBlockForPlacement.value) {
     return;
@@ -242,6 +261,7 @@ onMounted(async () => {
     // Initialize Phaser game
     phaserGame = new PhaserGameWrapper();
     mainScene = await phaserGame.initialize("phaser-container");
+    mainScene.setSelectionMode(isSelectionMode.value);
 
     if (!mainScene) {
       error.value = "Failed to initialize game";

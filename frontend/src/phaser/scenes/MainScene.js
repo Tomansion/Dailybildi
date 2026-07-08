@@ -11,9 +11,19 @@ export class MainScene extends Phaser.Scene {
     this.cameraManager = null
     this.blocks = new Map()
     this.selectedBlock = null
+    this.selectedBlocks = new Set()
     this.phantomBlock = null
     this.selectedBlockData = null
     this.readOnly = false
+    this.selectionMode = false
+    this.selectionGraphics = null
+    this.selectionStartWorldPoint = null
+    this.selectionCurrentWorldPoint = null
+    this.isSelectionDragging = false
+    this.shouldAppendSelection = false
+    this.pointerMultiSelectActive = false
+    this.skipModifierDragBlockKey = null
+    this.blockDragSnapshot = null
     this.universeConfig = {
       backgroundColor: '#000000',
       worldImageScale: 1,
@@ -127,6 +137,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   setupScene() {
+    this.input.dragDistanceThreshold = this.getBlockDragThreshold()
+
     this.cameraManager = new CameraManager(
       this,
       this.worldBounds.width,
@@ -143,8 +155,46 @@ export class MainScene extends Phaser.Scene {
   shutdown() {
     this.blocks.clear()
     this.selectedBlock = null
+    this.selectedBlocks.clear()
     this.phantomBlock = null
     this.selectedBlockData = null
+    this.selectionGraphics = null
+    this.selectionStartWorldPoint = null
+    this.selectionCurrentWorldPoint = null
+    this.isSelectionDragging = false
+    this.shouldAppendSelection = false
+    this.pointerMultiSelectActive = false
+    this.skipModifierDragBlockKey = null
+    this.blockDragSnapshot = null
+  }
+
+  getBlockDragThreshold() {
+    return GridManager.BLOCK_SIZE / 4
+  }
+
+  isMultiSelectModifierActive(pointer) {
+    return Boolean(pointer?.event?.shiftKey || pointer?.event?.ctrlKey || pointer?.event?.metaKey)
+  }
+
+  canStartCameraDrag(pointer) {
+    if (pointer.button !== 0) {
+      return true
+    }
+
+    if (this.selectionMode || this.selectedBlockData) {
+      return false
+    }
+
+    if (this.getBlockAtPointer(pointer)) {
+      return false
+    }
+
+    return true
+  }
+
+  getBlockAtPointer(pointer) {
+    const hitArea = this.input.hitTestPointer(pointer)
+    return hitArea.find((obj) => obj instanceof Block) || null
   }
 
   setupInputHandlers() {
@@ -153,9 +203,12 @@ export class MainScene extends Phaser.Scene {
       return
     }
 
+    this.selectionGraphics = this.add.graphics()
+    this.selectionGraphics.setDepth(1000001)
+
     // Handle Escape key - deselect block and cancel placement
     this.input.keyboard.on('keydown-ESC', () => {
-      this.deselectBlock()
+      this.clearSelection()
       this.cancelBlockPlacement()
     })
 
@@ -186,6 +239,40 @@ export class MainScene extends Phaser.Scene {
       }
     })
 
+    this.input.on('dragstart', (pointer, gameObject) => {
+      if (!(gameObject instanceof Block) || this.selectedBlockData) {
+        return
+      }
+
+      if (this.pointerMultiSelectActive && this.skipModifierDragBlockKey === gameObject.blockKey) {
+        return
+      }
+
+      if (!this.selectedBlocks.has(gameObject)) {
+        if (this.pointerMultiSelectActive || this.isMultiSelectModifierActive(pointer)) {
+          this.addBlockToSelection(gameObject)
+        } else {
+          this.selectBlock(gameObject)
+        }
+      }
+
+      this.cameraManager.setBlockDragInProgress(true)
+      this.blockDragSnapshot = {
+        draggedBlockKey: gameObject.blockKey,
+        originGridX: gameObject.gridX,
+        originGridY: gameObject.gridY,
+        positions: new Map(
+          Array.from(this.selectedBlocks).map((block) => [
+            block.blockKey,
+            {
+              gridX: block.gridX,
+              gridY: block.gridY
+            }
+          ])
+        )
+      }
+    })
+
     // Handle block drag
     this.input.on('drag', (pointer, gameObject) => {
       if (gameObject instanceof Block) {
@@ -193,6 +280,25 @@ export class MainScene extends Phaser.Scene {
         // Convert pointer to world coordinates for 1:1 dragging
         const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
         const snapped = GridManager.snapToGrid(worldPoint.x, worldPoint.y)
+
+        if (this.blockDragSnapshot && this.selectedBlocks.has(gameObject)) {
+          const draggedGrid = GridManager.pixelsToGrid(snapped.x, snapped.y)
+          const deltaGridX = draggedGrid.gridX - this.blockDragSnapshot.originGridX
+          const deltaGridY = draggedGrid.gridY - this.blockDragSnapshot.originGridY
+
+          for (const block of this.selectedBlocks) {
+            const startPosition = this.blockDragSnapshot.positions.get(block.blockKey)
+            if (!startPosition) continue
+
+            const nextGridX = startPosition.gridX + deltaGridX
+            const nextGridY = startPosition.gridY + deltaGridY
+            const nextPosition = GridManager.gridToPixels(nextGridX, nextGridY)
+            block.setPosition(nextPosition.x, nextPosition.y)
+          }
+
+          return
+        }
+
         gameObject.setPosition(snapped.x, snapped.y)
       }
     })
@@ -201,33 +307,61 @@ export class MainScene extends Phaser.Scene {
     this.input.on('dragend', (pointer, gameObject) => {
       if (gameObject instanceof Block) {
         this.cameraManager.setBlockDragInProgress(false)
-        const gridPos = GridManager.pixelsToGrid(gameObject.x, gameObject.y)
+        const draggedBlocks = this.blockDragSnapshot
+          ? Array.from(this.selectedBlocks)
+          : [gameObject]
 
-        // Snap to grid
-        gameObject.updatePosition(gridPos.gridX, gridPos.gridY)
+        for (const block of draggedBlocks) {
+          const previousPosition = this.blockDragSnapshot?.positions.get(block.blockKey) ?? {
+            gridX: block.gridX,
+            gridY: block.gridY
+          }
+          const gridPos = GridManager.pixelsToGrid(block.x, block.y)
 
-        // Trigger update callback
-        if (this.onBlockUpdatedCallback) {
-          this.onBlockUpdatedCallback(gameObject.blockKey, {
-            gridX: gridPos.gridX,
-            gridY: gridPos.gridY,
-            rotation: gameObject.blockRotation,
-            flipX: gameObject.flipX,
-            flipY: gameObject.flipY
-          })
+          // Snap to grid
+          block.updatePosition(gridPos.gridX, gridPos.gridY)
+
+          const hasMoved =
+            previousPosition.gridX !== gridPos.gridX ||
+            previousPosition.gridY !== gridPos.gridY
+
+          if (hasMoved && this.onBlockUpdatedCallback) {
+            this.onBlockUpdatedCallback(block.blockKey, {
+              gridX: gridPos.gridX,
+              gridY: gridPos.gridY,
+              rotation: block.blockRotation,
+              flipX: block.flipX,
+              flipY: block.flipY
+            })
+          }
         }
+
+        this.blockDragSnapshot = null
       }
     })
 
     // Handle left click on empty space - place new block if one is selected, or deselect current block
     // This is checked BEFORE gameobjectdown to prioritize block placement over block selection
     this.input.on('pointerdown', (pointer) => {
+      this.pointerMultiSelectActive = this.isMultiSelectModifierActive(pointer)
+
       if (this.cameraManager?.isTouchGestureActive()) {
         return
       }
 
       if (pointer.button === 2) {
         // Right click
+        return
+      }
+
+      if (this.selectionMode && !this.selectedBlockData) {
+        const hitArea = this.input.hitTestPointer(pointer)
+        const clickedOnBlock = hitArea.some(obj => obj instanceof Block)
+
+        if (!clickedOnBlock) {
+          this.startSelectionMarquee(pointer)
+        }
+
         return
       }
 
@@ -246,8 +380,12 @@ export class MainScene extends Phaser.Scene {
         return
       }
 
+      if (this.isMultiSelectModifierActive(pointer)) {
+        return
+      }
+
       // Click on empty space with no block selected - deselect the currently selected block
-      this.deselectBlock()
+      this.clearSelection()
     })
 
     // Handle block click - only if not in placement mode
@@ -257,13 +395,41 @@ export class MainScene extends Phaser.Scene {
       }
 
       if (gameObject instanceof Block && !this.selectedBlockData) {
+        if (this.isMultiSelectModifierActive(pointer)) {
+          if (this.selectedBlocks.has(gameObject)) {
+            this.skipModifierDragBlockKey = gameObject.blockKey
+            this.toggleBlockSelection(gameObject)
+          } else {
+            this.addBlockToSelection(gameObject)
+          }
+          return
+        }
+
+        if (this.selectedBlocks.has(gameObject)) {
+          return
+        }
+
         this.selectBlock(gameObject)
+      }
+    })
+
+    this.input.on('pointerup', () => {
+      this.pointerMultiSelectActive = false
+      this.skipModifierDragBlockKey = null
+
+      if (this.isSelectionDragging) {
+        this.finishSelectionMarquee()
       }
     })
 
     // Update phantom block position on mouse move and handle block hover effects
     this.input.on('pointermove', (pointer) => {
       if (this.cameraManager?.isTouchGestureActive()) {
+        return
+      }
+
+      if (this.isSelectionDragging) {
+        this.updateSelectionMarquee(pointer)
         return
       }
 
@@ -278,8 +444,8 @@ export class MainScene extends Phaser.Scene {
       const hoveredBlock = hitArea.find(obj => obj instanceof Block)
 
       for (const block of this.blocks.values()) {
-        if (block === this.selectedBlock) {
-          // Don't change selected block's opacity on hover
+        if (this.selectedBlocks.has(block)) {
+          // Don't change selected blocks' opacity on hover
           continue
         }
 
@@ -340,6 +506,8 @@ export class MainScene extends Phaser.Scene {
 
   // Public methods called from Vue
   loadBlocks(placedBlocks) {
+    this.clearSelection({ notify: false })
+
     // Destroy old blocks before clearing the map
     for (const block of this.blocks.values()) {
       block.destroy()
@@ -458,25 +626,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   selectBlock(block) {
-    if (this.selectedBlock) {
-      this.selectedBlock.clearTint()
-      this.selectedBlock.setAlpha(1)
-      // Restore original depth
-      if (this.selectedBlock._originalDepth !== undefined) {
-        this.selectedBlock.setDepth(this.selectedBlock._originalDepth)
-      }
-    }
-
-    this.selectedBlock = block
-    // Store original depth and set to high depth
-    this.selectedBlock._originalDepth = block.depth
-    this.selectedBlock.setDepth(10000)
-    this.selectedBlock.setAlpha(0.8)
-    this.selectedBlock.setTintFill(0x999933)
-
-    if (this.onBlockSelectedCallback) {
-      this.onBlockSelectedCallback(block.blockKey)
-    }
+    this.setSelectedBlocks(block ? [block] : [])
   }
 
   selectBlockByKey(blockKey) {
@@ -487,45 +637,43 @@ export class MainScene extends Phaser.Scene {
   }
 
   deselectBlock() {
-    if (this.selectedBlock) {
-      this.selectedBlock.setAlpha(1)
-      this.selectedBlock.clearTint()
-      // Restore original depth
-      if (this.selectedBlock._originalDepth !== undefined) {
-        this.selectedBlock.setDepth(this.selectedBlock._originalDepth)
-      }
-      this.selectedBlock = null
-      
-      if (this.onBlockDeselectedCallback) {
-        this.onBlockDeselectedCallback()
-      }
-    }
+    this.clearSelection()
   }
 
   removeSelectedBlock() {
-    if (!this.selectedBlock) return
+    if (this.selectedBlocks.size === 0) return
 
-    const blockKey = this.selectedBlock.blockKey
+    const blocksToRemove = Array.from(this.selectedBlocks)
 
-    this.selectedBlock.destroy()
-    this.blocks.delete(blockKey)
-    this.selectedBlock = null
+    this.clearSelection({ notify: false })
 
-    if (this.onBlockUpdatedCallback) {
-      this.onBlockUpdatedCallback(blockKey, { removed: true })
+    for (const block of blocksToRemove) {
+      const blockKey = block.blockKey
+      block.destroy()
+      this.blocks.delete(blockKey)
+
+      if (this.onBlockUpdatedCallback) {
+        this.onBlockUpdatedCallback(blockKey, { removed: true })
+      }
+    }
+
+    if (this.onBlockDeselectedCallback) {
+      this.onBlockDeselectedCallback()
     }
   }
 
   rotateSelectedBlock() {
-    if (!this.selectedBlock) return
+    if (this.selectedBlocks.size === 0) return
 
-    const newRotation = (this.selectedBlock.blockRotation + 90) % 360
-    this.selectedBlock.updateRotation(newRotation)
+    for (const block of this.selectedBlocks) {
+      const newRotation = (block.blockRotation + 90) % 360
+      block.updateRotation(newRotation)
 
-    if (this.onBlockUpdatedCallback) {
-      this.onBlockUpdatedCallback(this.selectedBlock.blockKey, {
-        rotation: newRotation
-      })
+      if (this.onBlockUpdatedCallback) {
+        this.onBlockUpdatedCallback(block.blockKey, {
+          rotation: newRotation
+        })
+      }
     }
   }
 
@@ -537,15 +685,17 @@ export class MainScene extends Phaser.Scene {
   }
 
   flipSelectedBlockHorizontal() {
-    if (!this.selectedBlock) return
+    if (this.selectedBlocks.size === 0) return
 
-    const flipX = !this.selectedBlock.flipX
-    this.selectedBlock.updateFlip(flipX, this.selectedBlock.flipY)
+    for (const block of this.selectedBlocks) {
+      const flipX = !block.flipX
+      block.updateFlip(flipX, block.flipY)
 
-    if (this.onBlockUpdatedCallback) {
-      this.onBlockUpdatedCallback(this.selectedBlock.blockKey, {
-        flipX: flipX
-      })
+      if (this.onBlockUpdatedCallback) {
+        this.onBlockUpdatedCallback(block.blockKey, {
+          flipX: flipX
+        })
+      }
     }
   }
 
@@ -557,15 +707,17 @@ export class MainScene extends Phaser.Scene {
   }
 
   flipSelectedBlockVertical() {
-    if (!this.selectedBlock) return
+    if (this.selectedBlocks.size === 0) return
 
-    const flipY = !this.selectedBlock.flipY
-    this.selectedBlock.updateFlip(this.selectedBlock.flipX, flipY)
+    for (const block of this.selectedBlocks) {
+      const flipY = !block.flipY
+      block.updateFlip(block.flipX, flipY)
 
-    if (this.onBlockUpdatedCallback) {
-      this.onBlockUpdatedCallback(this.selectedBlock.blockKey, {
-        flipY: flipY
-      })
+      if (this.onBlockUpdatedCallback) {
+        this.onBlockUpdatedCallback(block.blockKey, {
+          flipY: flipY
+        })
+      }
     }
   }
 
@@ -596,6 +748,185 @@ export class MainScene extends Phaser.Scene {
 
   setReadOnly(isReadOnly = true) {
     this.readOnly = isReadOnly
+  }
+
+  setSelectionMode(isEnabled = true) {
+    this.selectionMode = isEnabled
+
+    if (!isEnabled && this.isSelectionDragging) {
+      this.finishSelectionMarquee()
+    }
+  }
+
+  clearSelectionVisual(block) {
+    block.setAlpha(1)
+    block.clearTint()
+
+    if (block._originalDepth !== undefined) {
+      block.setDepth(block._originalDepth)
+      delete block._originalDepth
+    }
+  }
+
+  applySelectionVisual(block, index = 0) {
+    if (block._originalDepth === undefined) {
+      block._originalDepth = block.depth
+    }
+
+    block.setDepth(10000 + index)
+    block.setAlpha(0.8)
+    block.setTintFill(0x999933)
+  }
+
+  setSelectedBlocks(blocks, options = {}) {
+    const { notify = true } = options
+
+    for (const block of this.selectedBlocks) {
+      this.clearSelectionVisual(block)
+    }
+
+    this.selectedBlocks.clear()
+
+    for (const block of blocks) {
+      if (!block) continue
+      this.selectedBlocks.add(block)
+    }
+
+    this.selectedBlock = blocks[0] || null
+
+    Array.from(this.selectedBlocks).forEach((block, index) => {
+      this.applySelectionVisual(block, index)
+    })
+
+    if (!notify) {
+      return
+    }
+
+    if (this.selectedBlocks.size > 0) {
+      if (this.onBlockSelectedCallback) {
+        this.onBlockSelectedCallback(this.selectedBlock?.blockKey, this.selectedBlocks.size)
+      }
+      return
+    }
+
+    if (this.onBlockDeselectedCallback) {
+      this.onBlockDeselectedCallback()
+    }
+  }
+
+  clearSelection(options = {}) {
+    this.setSelectedBlocks([], options)
+  }
+
+  toggleBlockSelection(block) {
+    if (!block) {
+      return
+    }
+
+    const nextSelection = new Set(this.selectedBlocks)
+
+    if (nextSelection.has(block)) {
+      nextSelection.delete(block)
+    } else {
+      nextSelection.add(block)
+    }
+
+    this.setSelectedBlocks(Array.from(nextSelection))
+  }
+
+  addBlockToSelection(block) {
+    if (!block || this.selectedBlocks.has(block)) {
+      return
+    }
+
+    this.setSelectedBlocks([...this.selectedBlocks, block])
+  }
+
+  startSelectionMarquee(pointer) {
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+    this.selectionStartWorldPoint = worldPoint
+    this.selectionCurrentWorldPoint = worldPoint
+    this.isSelectionDragging = true
+    this.shouldAppendSelection = this.isMultiSelectModifierActive(pointer)
+
+    if (!this.shouldAppendSelection) {
+      this.clearSelection()
+    }
+
+    this.drawSelectionMarquee()
+  }
+
+  updateSelectionMarquee(pointer) {
+    this.selectionCurrentWorldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+    this.drawSelectionMarquee()
+  }
+
+  finishSelectionMarquee() {
+    const rect = this.getSelectionRectangle()
+    this.isSelectionDragging = false
+
+    if (rect) {
+      this.selectBlocksInRectangle(rect)
+    }
+
+    this.selectionStartWorldPoint = null
+    this.selectionCurrentWorldPoint = null
+    this.shouldAppendSelection = false
+    this.selectionGraphics.clear()
+  }
+
+  getSelectionRectangle() {
+    if (!this.selectionStartWorldPoint || !this.selectionCurrentWorldPoint) {
+      return null
+    }
+
+    const x = Math.min(this.selectionStartWorldPoint.x, this.selectionCurrentWorldPoint.x)
+    const y = Math.min(this.selectionStartWorldPoint.y, this.selectionCurrentWorldPoint.y)
+    const width = Math.abs(this.selectionCurrentWorldPoint.x - this.selectionStartWorldPoint.x)
+    const height = Math.abs(this.selectionCurrentWorldPoint.y - this.selectionStartWorldPoint.y)
+
+    return new Phaser.Geom.Rectangle(x, y, width, height)
+  }
+
+  drawSelectionMarquee() {
+    const rect = this.getSelectionRectangle()
+    this.selectionGraphics.clear()
+
+    if (!rect) {
+      return
+    }
+
+    const strokeWidth = 2 / this.cameras.main.zoom
+    this.selectionGraphics.lineStyle(strokeWidth, 0xffffff, 1)
+    this.selectionGraphics.fillStyle(0xffffff, 0.08)
+    this.selectionGraphics.strokeRect(rect.x, rect.y, rect.width, rect.height)
+    this.selectionGraphics.fillRect(rect.x, rect.y, rect.width, rect.height)
+  }
+
+  selectBlocksInRectangle(rect) {
+    const selectedBlocks = Array.from(this.blocks.values()).filter((block) => {
+      const bounds = block.getBounds()
+
+      return (
+        bounds.x >= rect.x &&
+        bounds.y >= rect.y &&
+        bounds.right <= rect.right &&
+        bounds.bottom <= rect.bottom
+      )
+    })
+
+    if (this.shouldAppendSelection) {
+      const mergedSelection = new Set(this.selectedBlocks)
+
+      for (const block of selectedBlocks) {
+        mergedSelection.add(block)
+      }
+
+      this.setSelectedBlocks(Array.from(mergedSelection))
+      return
+    }
+
+    this.setSelectedBlocks(selectedBlocks)
   }
 
   // Set callbacks

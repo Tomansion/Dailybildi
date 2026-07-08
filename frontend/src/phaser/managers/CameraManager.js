@@ -68,6 +68,9 @@ export class CameraManager {
       // Don't start camera drag if a block is being dragged
       if (this.blockDragInProgress) return
       if (this.isMultiTouchActive()) return
+      if (typeof this.scene.canStartCameraDrag === 'function' && !this.scene.canStartCameraDrag(pointer)) {
+        return
+      }
 
       this.isDragging = true
       this.dragStartX = pointer.x

@@ -6,6 +6,14 @@
     <button class="action-btn" title="Zoom out" @click.stop="onZoomOut">
       <img src="/icons/zoom-.svg" class="icon" alt="Zoom out" />
     </button>
+    <button
+      class="action-btn"
+      :class="{ active: selectionModeActive }"
+      title="Toggle selection mode"
+      @click.stop="onToggleSelectionMode"
+    >
+      <img src="/icons/selection.svg" class="icon" alt="Selection mode" />
+    </button>
     <div v-if="hasSelectedBlock" class="separator"></div>
     <button v-if="hasSelectedBlock" class="action-btn" title="Rotate 90° (R)" @click.stop="onRotate">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -43,10 +51,14 @@ const props = defineProps({
   hasSelectedBlock: {
     type: Boolean,
     default: false
+  },
+  selectionModeActive: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['rotate', 'flip-horizontal', 'flip-vertical', 'discard', 'zoom-in', 'zoom-out'])
+const emit = defineEmits(['rotate', 'flip-horizontal', 'flip-vertical', 'discard', 'zoom-in', 'zoom-out', 'toggle-selection-mode'])
 
 const onRotate = () => emit('rotate')
 const onFlipHorizontal = () => emit('flip-horizontal')
@@ -54,6 +66,7 @@ const onFlipVertical = () => emit('flip-vertical')
 const onDiscard = () => emit('discard')
 const onZoomIn = () => emit('zoom-in')
 const onZoomOut = () => emit('zoom-out')
+const onToggleSelectionMode = () => emit('toggle-selection-mode')
 </script>
 
 <style scoped>
@@ -88,6 +101,12 @@ const onZoomOut = () => emit('zoom-out')
   border-color: var(--text-primary);
 }
 
+.action-btn.active {
+  background-color: var(--text-primary);
+  color: var(--background);
+  border-color: var(--text-primary);
+}
+
 .action-btn.danger:hover {
   background-color: var(--error);
   border-color: var(--error);
@@ -104,11 +123,20 @@ const onZoomOut = () => emit('zoom-out')
 .action-btn img {
   width: 20px;
   height: 20px;
+  filter: brightness(0) saturate(100%);
+  transition: filter 0.2s;
 }
 
 .icon {
   width: 20px;
   height: 20px;
+  color: currentColor;
+}
+
+.action-btn:hover img,
+.action-btn.active img,
+.action-btn.danger:hover img {
+  filter: brightness(0) saturate(100%) invert(1);
 }
 
 .shortcut {
