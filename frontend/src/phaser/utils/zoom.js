@@ -9,30 +9,27 @@ export const CAMERA_ZOOM = Object.freeze({
   buttonStep: 0.4,
 });
 
-export function normalizeCameraZoom(zoom) {
-  console.log("zoom in", zoom);
-
+export function normalizeCameraZoom(zoom, options = {}) {
+  const { snap = true } = options;
   const clampedZoom = Phaser.Math.Clamp(zoom, CAMERA_ZOOM.min, CAMERA_ZOOM.max);
-  // Zoom must be a multiple of 0.4 to avoid artifacts
+
+  if (!snap) {
+    return Math.round(clampedZoom * CAMERA_ZOOM.precision) / CAMERA_ZOOM.precision;
+  }
+
   const remainder = clampedZoom % CAMERA_ZOOM.wheelStep;
   const adjustedZoom =
     remainder < CAMERA_ZOOM.wheelStep / 2
       ? clampedZoom - remainder
       : clampedZoom + (CAMERA_ZOOM.wheelStep - remainder);
-  const finalZoom = Phaser.Math.Clamp(
-    adjustedZoom,
-    CAMERA_ZOOM.min,
-    CAMERA_ZOOM.max,
-  );
-  const roundedZoom =
-    Math.round(finalZoom * CAMERA_ZOOM.precision) / CAMERA_ZOOM.precision;
-  console.log("zoom out", zoom);
-  return roundedZoom;
+  const finalZoom = Phaser.Math.Clamp(adjustedZoom, CAMERA_ZOOM.min, CAMERA_ZOOM.max);
+
+  return Math.round(finalZoom * CAMERA_ZOOM.precision) / CAMERA_ZOOM.precision;
 }
 
-export function setCameraZoom(camera, zoom, pointer = null) {
+export function setCameraZoom(camera, zoom, pointer = null, options = {}) {
   const oldZoom = camera.zoom;
-  const newZoom = normalizeCameraZoom(zoom);
+  const newZoom = normalizeCameraZoom(zoom, options);
 
   if (newZoom === oldZoom) {
     return newZoom;
@@ -57,6 +54,6 @@ export function setCameraZoom(camera, zoom, pointer = null) {
   return newZoom;
 }
 
-export function changeCameraZoom(camera, delta, pointer = null) {
-  return setCameraZoom(camera, camera.zoom + delta, pointer);
+export function changeCameraZoom(camera, delta, pointer = null, options = {}) {
+  return setCameraZoom(camera, camera.zoom + delta, pointer, options);
 }

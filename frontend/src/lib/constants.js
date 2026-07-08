@@ -1,5 +1,5 @@
 // Game constants
-export const BLOCK_SIZE = 64
+export const BLOCK_SIZE = 40
 export const CAMERA_BOUNDS = 5000
 
 // Universe configuration

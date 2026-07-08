@@ -4,14 +4,11 @@ export class CameraManager {
   constructor(scene, worldWidth, worldHeight) {
     this.scene = scene
     this.camera = scene.cameras.main
+    this.pinch = null
     this.isDragging = false
     this.isPinching = false
     this.dragStartX = 0
     this.dragStartY = 0
-    this.pinchStartDistance = 0
-    this.pinchStartZoom = CAMERA_ZOOM.initial
-    this.pinchCenterX = 0
-    this.pinchCenterY = 0
     this.cursors = null
     this.cameraMoveSpeed = 10
     this.blockDragInProgress = false
@@ -106,41 +103,57 @@ export class CameraManager {
   }
 
   setupPinchZoom() {
-    this.scene.input.on('pointerdown', () => {
-      const activeTouches = this.getActiveTouchPointers()
+    const pinchPlugin = this.scene.plugins.get('rexpinchplugin')
 
-      if (activeTouches.length >= 2) {
-        this.startPinch(activeTouches[0], activeTouches[1])
-      }
-    })
+    if (!pinchPlugin) {
+      return
+    }
 
-    this.scene.input.on('pointermove', () => {
+    this.pinch = pinchPlugin.add(this.scene, { threshold: 0 })
+
+    this.pinch.on('drag2start', () => {
       if (this.blockDragInProgress) return
 
-      const activeTouches = this.getActiveTouchPointers()
-
-      if (activeTouches.length < 2) {
-        if (this.isPinching) {
-          this.stopPinch()
-        }
-        return
-      }
-
-      if (!this.isPinching) {
-        this.startPinch(activeTouches[0], activeTouches[1])
-      }
-
-      this.updatePinch(activeTouches[0], activeTouches[1])
+      this.isDragging = false
+      this.isPinching = true
     })
 
-    this.scene.input.on('pointerup', () => {
-      if (this.getActiveTouchPointers().length < 2) {
-        this.stopPinch()
+    this.pinch.on('drag2', (pinch) => {
+      if (this.blockDragInProgress) return
+
+      this.isDragging = false
+      this.isPinching = true
+      this.camera.scrollX -= pinch.movementCenterX / this.camera.zoom
+      this.camera.scrollY -= pinch.movementCenterY / this.camera.zoom
+    })
+
+    this.pinch.on('pinch', (pinch) => {
+      if (this.blockDragInProgress) return
+
+      const pinchCenter = {
+        x: pinch.centerX,
+        y: pinch.centerY,
       }
+
+      this.setZoom(this.camera.zoom * pinch.scaleFactor, pinchCenter, { snap: false })
+    })
+
+    this.pinch.on('drag2end', () => {
+      this.stopPinch()
+    })
+
+    this.pinch.on('pinchend', () => {
+      this.stopPinch()
     })
   }
 
   getActiveTouchPointers() {
+    if (this.pinch?.pointers?.length) {
+      return this.pinch.pointers.filter(
+        (pointer) => pointer.pointerType === 'touch' && pointer.isDown
+      )
+    }
+
     return this.scene.input.manager.pointers.filter(
       (pointer) => pointer.pointerType === 'touch' && pointer.isDown
     )
@@ -154,61 +167,12 @@ export class CameraManager {
     return this.isPinching || this.isMultiTouchActive()
   }
 
-  getPointerDistance(pointerA, pointerB) {
-    return Math.hypot(pointerB.x - pointerA.x, pointerB.y - pointerA.y)
-  }
-
-  getPinchCenter(pointerA, pointerB) {
-    return {
-      x: (pointerA.x + pointerB.x) / 2,
-      y: (pointerA.y + pointerB.y) / 2,
-    }
-  }
-
-  startPinch(pointerA, pointerB) {
-    this.isPinching = true
-    this.isDragging = false
-    this.pinchStartDistance = this.getPointerDistance(pointerA, pointerB)
-    this.pinchStartZoom = this.camera.zoom
-    const pinchCenter = this.getPinchCenter(pointerA, pointerB)
-    this.pinchCenterX = pinchCenter.x
-    this.pinchCenterY = pinchCenter.y
-  }
-
-  updatePinch(pointerA, pointerB) {
-    if (!this.pinchStartDistance) return
-
-    const currentDistance = this.getPointerDistance(pointerA, pointerB)
-
-    if (!currentDistance) return
-
-    const pinchCenter = this.getPinchCenter(pointerA, pointerB)
-
-    const zoomRatio = currentDistance / this.pinchStartDistance
-    this.setZoom(this.pinchStartZoom * zoomRatio, pinchCenter)
-
-    const deltaX = (this.pinchCenterX - pinchCenter.x) / this.camera.zoom
-    const deltaY = (this.pinchCenterY - pinchCenter.y) / this.camera.zoom
-
-    this.camera.scrollX += deltaX
-    this.camera.scrollY += deltaY
-
-    this.pinchStartDistance = currentDistance
-    this.pinchStartZoom = this.camera.zoom
-    this.pinchCenterX = pinchCenter.x
-    this.pinchCenterY = pinchCenter.y
-  }
-
   stopPinch() {
     this.isPinching = false
-    this.pinchStartDistance = 0
-    this.pinchStartZoom = this.camera.zoom
-    this.pinchCenterX = 0
-    this.pinchCenterY = 0
   }
 
-  setZoom(zoom, pointer = null) {
-    return setCameraZoom(this.camera, zoom, pointer)
+  setZoom(zoom, pointer = null, options = {}) {
+    return setCameraZoom(this.camera, zoom, pointer, options)
   }
 
   zoomIn() {

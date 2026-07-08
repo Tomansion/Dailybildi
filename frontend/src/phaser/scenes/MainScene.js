@@ -3,6 +3,7 @@ import { CameraManager } from '../managers/CameraManager'
 import { GridManager } from '../managers/GridManager'
 import { Block } from '../entities/Block'
 import { UNIVERSE_ID, getUniverseConfigPath, getBackendUrl } from '@/lib/constants'
+import pinchPluginUrl from '@/utils/rexpinchplugin.min.js?url'
 
 export class MainScene extends Phaser.Scene {
   constructor() {
@@ -36,7 +37,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    // Universe config will be loaded in create() using fetch
+    this.load.plugin('rexpinchplugin', pinchPluginUrl, true)
   }
 
   create() {
